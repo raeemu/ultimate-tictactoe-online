@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { MatchmakingModule } from './matchmaking/matchmaking.module';
 import { MatchesModule } from './matches/matches.module';
+import { WsModule } from './ws/ws.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { MatchesModule } from './matches/matches.module';
     AuthModule,
     MatchmakingModule,
     MatchesModule,
+    WsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

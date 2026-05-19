@@ -13,6 +13,35 @@ import { PrismaService } from '../prisma/prisma.service';
 export class MatchesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getMatchSnapshotForUser(matchId: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      select: {
+        id: true,
+        status: true,
+        playerXId: true,
+        playerOId: true,
+        currentTurn: true,
+        activeBoard: true,
+        boardState: true,
+        macroboardState: true,
+        winnerId: true,
+        finishedAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Match not found');
+    }
+
+    if (match.playerXId !== userId && match.playerOId !== userId) {
+      throw new ForbiddenException('User is not a participant of this match');
+    }
+
+    return match;
+  }
+
   async createMove(matchId: string, userId: string, move: MoveInput) {
     try {
       return await this.prisma.$transaction(async (tx) => {
