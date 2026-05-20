@@ -6,8 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CellValue, MatchStatus, Prisma } from '@prisma/client';
-import { applyMove, GameRuleError, MoveInput, UltimateGameState } from '../game-core';
-import { PrismaService } from '../prisma/prisma.service';
+import { applyMove, GameRuleError, MoveInput, UltimateGameState } from '../../core/game';
+import { PrismaService } from '../../infrastructure/persistence/prisma/prisma.service';
 
 @Injectable()
 export class MatchesService {
