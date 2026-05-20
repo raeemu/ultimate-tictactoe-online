@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { CellValue, MatchStatus, Prisma } from '@prisma/client';
 import { applyMove, GameRuleError, MoveInput, UltimateGameState } from '../../core/game';
-import { PrismaService } from '../../infrastructure/persistence/prisma/prisma.service';
+import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 
 @Injectable()
 export class MatchesService {

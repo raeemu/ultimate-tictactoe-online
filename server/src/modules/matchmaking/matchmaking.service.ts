@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { MatchStatus } from '@prisma/client';
 import { createInitialState } from '../../core/game';
-import { PrismaService } from '../../infrastructure/persistence/prisma/prisma.service';
+import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 
 @Injectable()
 export class MatchmakingService {
