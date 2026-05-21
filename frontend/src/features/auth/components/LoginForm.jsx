@@ -1,4 +1,4 @@
-window.LoginForm = function LoginForm({
+export function LoginForm({
   username,
   password,
   onUsernameChange,
@@ -7,7 +7,7 @@ window.LoginForm = function LoginForm({
   loading,
 }) {
   return (
-    <>
+    <form className="auth-form" onSubmit={onSubmit}>
       <label>
         Логин
         <input
@@ -15,6 +15,7 @@ window.LoginForm = function LoginForm({
           placeholder="Например: grandmaster_x"
           value={username}
           onChange={(e) => onUsernameChange(e.target.value)}
+          autoComplete="username"
         />
       </label>
 
@@ -25,14 +26,15 @@ window.LoginForm = function LoginForm({
           placeholder="Введите ваш пароль"
           value={password}
           onChange={(e) => onPasswordChange(e.target.value)}
+          autoComplete="current-password"
         />
       </label>
 
       <div className="actions">
-        <button type="button" onClick={onSubmit} disabled={loading}>
+        <button type="submit" disabled={loading}>
           Войти
         </button>
       </div>
-    </>
+    </form>
   );
-};
+}

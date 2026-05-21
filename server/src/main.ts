@@ -16,7 +16,7 @@ async function bootstrap() {
     }),
   );
 
-  const frontendRoot = join(process.cwd(), '..', 'frontend');
+  const frontendRoot = join(process.cwd(), '..', 'frontend', 'dist');
   app.useStaticAssets(frontendRoot);
 
   const express = app.getHttpAdapter().getInstance();

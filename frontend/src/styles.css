@@ -47,6 +47,12 @@ p {
   color: var(--muted);
 }
 
+.auth-form,
+.session-panel {
+  display: grid;
+  gap: 12px;
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -85,7 +91,7 @@ input::placeholder {
 
 .actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
@@ -101,4 +107,9 @@ button {
 button.secondary {
   color: var(--primary);
   background: #ffffff;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }

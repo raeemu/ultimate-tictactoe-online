@@ -1,4 +1,4 @@
-window.RegisterForm = function RegisterForm({
+export function RegisterForm({
   username,
   email,
   password,
@@ -11,7 +11,7 @@ window.RegisterForm = function RegisterForm({
   loading,
 }) {
   return (
-    <>
+    <form className="auth-form" onSubmit={onSubmit}>
       <label>
         Логин
         <input
@@ -19,6 +19,7 @@ window.RegisterForm = function RegisterForm({
           placeholder="Придумайте логин"
           value={username}
           onChange={(e) => onUsernameChange(e.target.value)}
+          autoComplete="username"
         />
       </label>
 
@@ -29,6 +30,7 @@ window.RegisterForm = function RegisterForm({
           placeholder="name@example.com"
           value={email}
           onChange={(e) => onEmailChange(e.target.value)}
+          autoComplete="email"
         />
       </label>
 
@@ -39,6 +41,7 @@ window.RegisterForm = function RegisterForm({
           placeholder="Минимум 8 символов, буквы и цифры"
           value={password}
           onChange={(e) => onPasswordChange(e.target.value)}
+          autoComplete="new-password"
         />
       </label>
 
@@ -49,14 +52,15 @@ window.RegisterForm = function RegisterForm({
           placeholder="Введите пароль еще раз"
           value={confirmPassword}
           onChange={(e) => onConfirmPasswordChange(e.target.value)}
+          autoComplete="new-password"
         />
       </label>
 
       <div className="actions">
-        <button type="button" className="secondary" onClick={onSubmit} disabled={loading}>
+        <button type="submit" className="secondary" disabled={loading}>
           Зарегистрироваться
         </button>
       </div>
-    </>
+    </form>
   );
-};
+}
