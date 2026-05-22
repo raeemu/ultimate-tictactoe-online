@@ -23,7 +23,7 @@ async function bootstrap() {
   express.get('/', (_req: Request, res: Response) => {
     res.redirect('/auth');
   });
-  express.get(['/auth', '/register'], (_req: Request, res: Response) => {
+  express.get(['/auth', '/register', '/lobby', '/game/:matchId'], (_req: Request, res: Response) => {
     res.sendFile(join(frontendRoot, 'index.html'));
   });
 

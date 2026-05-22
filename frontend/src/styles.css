@@ -5,6 +5,10 @@
   --muted: #64748b;
   --line: #cbd5e1;
   --primary: #0f766e;
+  --primary-soft: #ecfeff;
+  --danger: #b91c1c;
+  --warning: #92400e;
+  --success: #047857;
 }
 
 * {
@@ -19,32 +23,57 @@ body {
   color: var(--text);
 }
 
-.auth-page {
+button,
+input {
+  font: inherit;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+p {
+  color: var(--muted);
+}
+
+.center-page {
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 20px;
 }
 
+.app-page {
+  min-height: 100vh;
+  padding: 32px 20px;
+}
+
+.card,
+.panel,
+.profile-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgb(15 23 42 / 8%);
+}
+
 .auth-card {
   width: 100%;
   max-width: 380px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 14px;
   padding: 20px;
   display: grid;
   gap: 12px;
 }
 
-h1 {
-  margin: 0;
-  font-size: 24px;
+.compact-card {
+  padding: 20px;
 }
 
-p {
-  margin: 0;
-  color: var(--muted);
+.auth-card h1,
+.lobby-hero h1 {
+  font-size: 24px;
 }
 
 .auth-form,
@@ -85,11 +114,12 @@ input::placeholder {
 
 .active-tab {
   border-color: var(--primary);
-  background: #ecfeff;
-  color: #0f766e;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
-.actions {
+.actions,
+.panel-actions {
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
@@ -112,4 +142,185 @@ button.secondary {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.button-link {
+  width: fit-content;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #ffffff;
+  background: var(--primary);
+  text-decoration: none;
+}
+
+.lobby-layout {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 20px;
+}
+
+.lobby-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.lobby-hero > div:first-child,
+.panel {
+  padding: 24px;
+}
+
+.lobby-hero > div:first-child {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  min-height: 180px;
+  background: linear-gradient(135deg, #0f766e 0%, #164e63 100%);
+  border-radius: 16px;
+  color: #ffffff;
+}
+
+.lobby-hero > div:first-child p {
+  color: #d9fffb;
+}
+
+.eyebrow {
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profile-card {
+  padding: 20px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.profile-card strong {
+  font-size: 22px;
+}
+
+.profile-card span {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.panel-heading h2 {
+  margin-top: 4px;
+}
+
+.panel-copy {
+  margin-bottom: 18px;
+  max-width: 680px;
+}
+
+.queue-state-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.queue-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  background: #94a3b8;
+}
+
+.status-pill {
+  border-radius: 999px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.status-searching,
+.status-joining,
+.status-leaving {
+  background: #fef3c7;
+  color: var(--warning);
+}
+
+.queue-dot.status-searching,
+.queue-dot.status-joining,
+.queue-dot.status-leaving {
+  background: var(--warning);
+}
+
+.status-matched {
+  background: #d1fae5;
+  color: var(--success);
+}
+
+.queue-dot.status-matched {
+  background: var(--success);
+}
+
+.status-error {
+  background: #fee2e2;
+  color: var(--danger);
+}
+
+.queue-dot.status-error {
+  background: var(--danger);
+}
+
+.match-summary {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border: 1px solid #99f6e4;
+  border-radius: 12px;
+  background: #f0fdfa;
+}
+
+.match-summary strong {
+  overflow-wrap: anywhere;
+}
+
+.helper-text {
+  margin-bottom: 14px;
+}
+
+.error-text {
+  margin-bottom: 14px;
+  color: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .app-page {
+    padding: 20px;
+  }
+
+  .lobby-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-heading {
+    display: grid;
+  }
 }
