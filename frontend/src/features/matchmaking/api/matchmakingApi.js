@@ -6,6 +6,13 @@ function authHeaders(token) {
   };
 }
 
+export function getQueueStatus(token) {
+  return apiRequest("/matchmaking/queue", {
+    method: "GET",
+    headers: authHeaders(token),
+  });
+}
+
 export function joinQueue(token) {
   return apiRequest("/matchmaking/queue", {
     method: "POST",

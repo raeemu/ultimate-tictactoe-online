@@ -7,7 +7,10 @@ export default defineConfig({
     proxy: {
       "/auth": "http://localhost:3000",
       "/matchmaking": "http://localhost:3000",
-      "/matches": "http://localhost:3000",
+      "/matches": {
+        target: "http://localhost:3000",
+        ws: true,
+      },
     },
   },
 });

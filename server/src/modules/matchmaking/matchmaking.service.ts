@@ -3,13 +3,47 @@ import { MatchStatus } from '@prisma/client';
 import { createInitialState } from '../../core/game';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 
+type MatchmakingMatch = {
+  id: string;
+  status: MatchStatus;
+  playerXId: string;
+  playerOId: string | null;
+  currentTurn: string;
+  activeBoard: number | null;
+  createdAt: Date;
+  startedAt: Date | null;
+};
+
 @Injectable()
 export class MatchmakingService {
   private readonly queue: string[] = [];
+  private readonly pendingMatches = new Map<string, MatchmakingMatch>();
 
   constructor(private readonly prisma: PrismaService) {}
 
+  async getQueueStatus(userId: string) {
+    const pendingMatch = this.consumePendingMatch(userId);
+    if (pendingMatch) {
+      return {
+        status: 'MATCH_FOUND' as const,
+        match: pendingMatch,
+      };
+    }
+
+    return {
+      status: this.queue.includes(userId) ? 'SEARCHING' as const : 'NOT_IN_QUEUE' as const,
+    };
+  }
+
   async joinQueue(userId: string) {
+    const pendingMatch = this.consumePendingMatch(userId);
+    if (pendingMatch) {
+      return {
+        status: 'MATCH_FOUND' as const,
+        match: pendingMatch,
+      };
+    }
+
     const waitingOpponent = this.dequeueOpponent(userId);
 
     if (!waitingOpponent) {
@@ -46,6 +80,8 @@ export class MatchmakingService {
       },
     });
 
+    this.pendingMatches.set(waitingOpponent, match);
+
     return {
       status: 'MATCH_FOUND' as const,
       match,
@@ -63,6 +99,17 @@ export class MatchmakingService {
 
   getQueueSize() {
     return this.queue.length;
+  }
+
+  private consumePendingMatch(userId: string): MatchmakingMatch | null {
+    const match = this.pendingMatches.get(userId);
+    if (!match) {
+      return null;
+    }
+
+    this.pendingMatches.delete(userId);
+    this.removeFromQueue(userId);
+    return match;
   }
 
   private dequeueOpponent(userId: string): string | null {

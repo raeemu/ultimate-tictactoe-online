@@ -1,5 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
-import { joinQueue, leaveQueue } from "../api/matchmakingApi";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getQueueStatus, joinQueue, leaveQueue } from "../api/matchmakingApi";
+
+const POLL_INTERVAL_MS = 2000;
 
 const initialState = {
   error: "",
@@ -8,8 +10,63 @@ const initialState = {
   status: "idle",
 };
 
+function mapQueueResponse(data) {
+  if (data.status === "MATCH_FOUND") {
+    return {
+      error: "",
+      lastResponseStatus: data.status,
+      match: data.match,
+      status: "matched",
+    };
+  }
+
+  if (data.status === "SEARCHING") {
+    return {
+      error: "",
+      lastResponseStatus: data.status,
+      match: null,
+      status: "searching",
+    };
+  }
+
+  return {
+    error: "",
+    lastResponseStatus: data.status,
+    match: null,
+    status: "idle",
+  };
+}
+
 export function useMatchmaking(token) {
   const [state, setState] = useState(initialState);
+
+  useEffect(() => {
+    if (!token || state.status !== "searching") {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(async () => {
+      try {
+        const data = await getQueueStatus(token);
+        setState((current) => {
+          if (current.status !== "searching") {
+            return current;
+          }
+
+          return mapQueueResponse(data);
+        });
+      } catch (err) {
+        setState({
+          error: err.message,
+          lastResponseStatus: "",
+          match: null,
+          status: "error",
+        });
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [state.status, token]);
 
   const startSearch = useCallback(async () => {
     if (!token) {
@@ -26,23 +83,7 @@ export function useMatchmaking(token) {
 
     try {
       const data = await joinQueue(token);
-
-      if (data.status === "MATCH_FOUND") {
-        setState({
-          error: "",
-          lastResponseStatus: data.status,
-          match: data.match,
-          status: "matched",
-        });
-        return;
-      }
-
-      setState({
-        error: "",
-        lastResponseStatus: data.status,
-        match: null,
-        status: "searching",
-      });
+      setState(mapQueueResponse(data));
     } catch (err) {
       setState({
         error: err.message,
