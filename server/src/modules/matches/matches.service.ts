@@ -6,8 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CellValue, MatchStatus, Prisma } from '@prisma/client';
-import { applyMove, GameRuleError, MoveInput, UltimateGameState } from '../../core/game';
-import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { applyMove, GameRuleError, MoveInput, UltimateGameState } from '../../game';
+import { PrismaService } from '../../prisma/prisma.service';
 
 const matchSnapshotSelect = {
   id: true,

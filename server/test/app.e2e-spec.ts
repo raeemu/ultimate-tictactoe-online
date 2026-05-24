@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app/app.module';
+import { AppModule } from './../src/app.module';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -17,11 +17,13 @@ describe('AppController (e2e)', () => {
   });
 
   it('/auth/register (POST)', () => {
+    const userId = Date.now();
+
     return request(app.getHttpServer())
       .post('/auth/register')
       .send({
-        username: 'e2e_user',
-        email: 'e2e_user@example.com',
+        username: `e2e_user_${userId}`,
+        email: `e2e_user_${userId}@example.com`,
         password: 'password123',
       })
       .expect(201);

@@ -4,8 +4,8 @@ import {
   createInitialState,
   resolveMacroWinner,
   resolveMiniBoardWinner,
-} from './engine';
-import { UltimateGameState } from './types';
+} from '../src/game/engine';
+import { UltimateGameState } from '../src/game/types';
 
 function withCells(
   state: UltimateGameState,
@@ -82,11 +82,23 @@ describe('game-core engine', () => {
     let state = createInitialState();
     state = applyMove(state, { localBoard: 0, localCell: 1 }, 'X');
 
-    const board1Draw: Array<'X' | 'O'> = ['X', 'O', 'X', 'X', 'O', 'O', 'O', 'X', 'X'];
+    const board1Draw: Array<'X' | 'O'> = [
+      'X',
+      'O',
+      'X',
+      'X',
+      'O',
+      'O',
+      'O',
+      'X',
+      'X',
+    ];
     state = withCells(state, 1, board1Draw);
     state = {
       ...state,
-      miniBoards: state.miniBoards.map((value, idx) => (idx === 1 ? 'DRAW' : value)),
+      miniBoards: state.miniBoards.map((value, idx) =>
+        idx === 1 ? 'DRAW' : value,
+      ),
       activeBoard: null,
     };
 
@@ -96,13 +108,33 @@ describe('game-core engine', () => {
 
   it('resolves mini-board winner correctly', () => {
     let state = createInitialState();
-    state = withCells(state, 2, ['X', 'X', 'X', null, null, null, null, null, null]);
+    state = withCells(state, 2, [
+      'X',
+      'X',
+      'X',
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ]);
 
     expect(resolveMiniBoardWinner(state.cells, 2)).toBe('X');
   });
 
   it('resolves macro winner correctly', () => {
-    const miniBoards = ['X', 'X', 'X', 'OPEN', 'DRAW', 'OPEN', 'O', 'OPEN', 'DRAW'] as const;
+    const miniBoards = [
+      'X',
+      'X',
+      'X',
+      'OPEN',
+      'DRAW',
+      'OPEN',
+      'O',
+      'OPEN',
+      'DRAW',
+    ] as const;
     expect(resolveMacroWinner([...miniBoards])).toBe('X');
   });
 });

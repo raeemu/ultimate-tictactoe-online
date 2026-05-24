@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { MatchStatus } from '@prisma/client';
-import { PrismaService } from '../../infrastructure/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 const RATING_DELTA = 25;
 const HISTORY_PAGE_SIZE = 20;
