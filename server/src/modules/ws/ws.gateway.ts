@@ -127,6 +127,32 @@ export class WsGateway implements OnGatewayConnection {
     };
   }
 
+  @SubscribeMessage('match:abandon')
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }))
+  async onAbandonMatch(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: JoinMatchDto,
+  ) {
+    const userId = client.data.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
+    const room = this.getMatchRoom(payload.matchId);
+    if (!client.rooms.has(room)) {
+      throw new ForbiddenException('Join match room before abandoning match');
+    }
+
+    const match = await this.matchesService.abandonMatch(payload.matchId, userId);
+
+    this.server.to(room).emit('match:abandoned', { match });
+
+    return {
+      ok: true,
+      matchId: match.id,
+    };
+  }
+
   private getMatchRoom(matchId: string): string {
     return `match:${matchId}`;
   }

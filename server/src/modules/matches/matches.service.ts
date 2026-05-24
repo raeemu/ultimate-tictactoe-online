@@ -9,6 +9,20 @@ import { CellValue, MatchStatus, Prisma } from '@prisma/client';
 import { applyMove, GameRuleError, MoveInput, UltimateGameState } from '../../core/game';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 
+const matchSnapshotSelect = {
+  id: true,
+  status: true,
+  playerXId: true,
+  playerOId: true,
+  currentTurn: true,
+  activeBoard: true,
+  boardState: true,
+  macroboardState: true,
+  winnerId: true,
+  finishedAt: true,
+  updatedAt: true,
+} satisfies Prisma.MatchSelect;
+
 @Injectable()
 export class MatchesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -16,18 +30,28 @@ export class MatchesService {
   async getMatchSnapshotForUser(matchId: string, userId: string) {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
+      select: matchSnapshotSelect,
+    });
+
+    if (!match) {
+      throw new NotFoundException('Match not found');
+    }
+
+    if (!this.isParticipant(match.playerXId, match.playerOId, userId)) {
+      throw new ForbiddenException('User is not a participant of this match');
+    }
+
+    return match;
+  }
+
+  async abandonMatch(matchId: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
       select: {
         id: true,
         status: true,
         playerXId: true,
         playerOId: true,
-        currentTurn: true,
-        activeBoard: true,
-        boardState: true,
-        macroboardState: true,
-        winnerId: true,
-        finishedAt: true,
-        updatedAt: true,
       },
     });
 
@@ -35,11 +59,22 @@ export class MatchesService {
       throw new NotFoundException('Match not found');
     }
 
-    if (match.playerXId !== userId && match.playerOId !== userId) {
+    if (!this.isParticipant(match.playerXId, match.playerOId, userId)) {
       throw new ForbiddenException('User is not a participant of this match');
     }
 
-    return match;
+    if (match.status === MatchStatus.ABANDONED || match.status === MatchStatus.FINISHED) {
+      return this.getMatchSnapshotForUser(matchId, userId);
+    }
+
+    return this.prisma.match.update({
+      where: { id: matchId },
+      data: {
+        status: MatchStatus.ABANDONED,
+        finishedAt: new Date(),
+      },
+      select: matchSnapshotSelect,
+    });
   }
 
   async createMove(matchId: string, userId: string, move: MoveInput) {
@@ -126,17 +161,7 @@ export class MatchesService {
             winnerId,
             finishedAt: nextState.status === 'FINISHED' ? new Date() : null,
           },
-          select: {
-            id: true,
-            status: true,
-            playerXId: true,
-            playerOId: true,
-            currentTurn: true,
-            activeBoard: true,
-            winnerId: true,
-            finishedAt: true,
-            updatedAt: true,
-          },
+          select: matchSnapshotSelect,
         });
 
         const createdMove = await tx.move.create({
@@ -184,6 +209,10 @@ export class MatchesService {
 
       throw error;
     }
+  }
+
+  private isParticipant(playerXId: string, playerOId: string | null, userId: string): boolean {
+    return playerXId === userId || playerOId === userId;
   }
 
   private resolvePlayerSymbol(

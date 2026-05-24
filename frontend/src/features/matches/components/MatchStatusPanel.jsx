@@ -1,48 +1,60 @@
 const connectionText = {
-  connecting: "Подключаемся к матчу...",
-  joining: "Загружаем состояние матча...",
-  joined: "Матч подключен",
-  disconnected: "Соединение с матчем потеряно",
-  error: "Ошибка подключения",
+  connecting: "Подключаемся к партии...",
+  joining: "Открываем игровое поле...",
+  joined: "Партия идет",
+  disconnected: "Связь с партией прервалась",
+  error: "Не удалось подключиться",
 };
 
-export function MatchStatusPanel({ connectionStatus, match, playerId }) {
+const matchStatusText = {
+  WAITING: "Ожидаем второго игрока",
+  ACTIVE: "Партия идет",
+  FINISHED: "Партия завершена",
+  ABANDONED: "Партия покинута",
+};
+
+export function MatchStatusPanel({ abandonError, abandonStatus, connectionStatus, match, moveError, moveStatus, playerId }) {
   const playerSymbol = resolvePlayerSymbol(match, playerId);
-  const turnLabel = match?.currentTurn ? `Ход ${match.currentTurn}` : "Ход неизвестен";
+  const isMyTurn = Boolean(playerSymbol && match?.currentTurn === playerSymbol && match?.status === "ACTIVE");
+  const isMatchOver = Boolean(match && match.status !== "ACTIVE" && match.status !== "WAITING");
   const activeBoardLabel = match?.activeBoard === null || match?.activeBoard === undefined
-    ? "Любое открытое поле"
-    : `Локальное поле ${match.activeBoard + 1}`;
+    ? "Можно выбрать любое открытое поле"
+    : `Играем в поле ${match.activeBoard + 1}`;
+  const panelTitle = match ? matchStatusText[match.status] ?? connectionText[connectionStatus] : connectionText[connectionStatus];
+  const playerTurnLabel = getTurnLabel(match, isMyTurn);
 
   return (
     <aside className="match-status-panel panel">
-      <p className="eyebrow">Статус</p>
-      <h2>{connectionText[connectionStatus] ?? connectionText.connecting}</h2>
+      <p className="eyebrow">Партия</p>
+      <h2>{panelTitle ?? connectionText.connecting}</h2>
 
       {match ? (
-        <dl className="match-facts">
-          <div>
-            <dt>Вы играете за</dt>
-            <dd>{playerSymbol ?? "-"}</dd>
+        <>
+          <div className={isMyTurn ? "turn-banner turn-banner-active" : "turn-banner"}>
+            {moveStatus === "sending" ? "Отправляем ход..." : playerTurnLabel}
           </div>
-          <div>
-            <dt>Текущий ход</dt>
-            <dd>{turnLabel}</dd>
-          </div>
-          <div>
-            <dt>Активное поле</dt>
-            <dd>{activeBoardLabel}</dd>
-          </div>
-          <div>
-            <dt>Статус матча</dt>
-            <dd>{match.status}</dd>
-          </div>
-        </dl>
+
+          {moveError ? <p className="error-text">{moveError}</p> : null}
+          {abandonStatus === "leaving" ? <p className="helper-text">Покидаем партию...</p> : null}
+          {abandonError ? <p className="error-text">{abandonError}</p> : null}
+
+          <dl className="match-facts">
+            <div>
+              <dt>Ваш знак</dt>
+              <dd>{playerSymbol ?? "-"}</dd>
+            </div>
+            <div>
+              <dt>{isMatchOver ? "Что дальше" : "Куда ходить"}</dt>
+              <dd>{isMatchOver ? "Можно вернуться в лобби и начать новую партию" : activeBoardLabel}</dd>
+            </div>
+          </dl>
+        </>
       ) : null}
     </aside>
   );
 }
 
-function resolvePlayerSymbol(match, playerId) {
+export function resolvePlayerSymbol(match, playerId) {
   if (!match || !playerId) {
     return null;
   }
@@ -56,4 +68,20 @@ function resolvePlayerSymbol(match, playerId) {
   }
 
   return null;
+}
+
+function getTurnLabel(match, isMyTurn) {
+  if (!match) {
+    return "Открываем партию";
+  }
+
+  if (match.status === "ABANDONED") {
+    return "Один из игроков покинул матч";
+  }
+
+  if (match.status === "FINISHED") {
+    return "Игра завершена";
+  }
+
+  return isMyTurn ? "Ваш ход" : "Ждем ход соперника";
 }

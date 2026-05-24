@@ -13,7 +13,7 @@ export function LobbyPage() {
           <div>
             <p className="eyebrow">Ultimate Tic-Tac-Toe Online</p>
             <h1>Лобби</h1>
-            <p>Выберите быструю игру, чтобы найти соперника для онлайн-матча 1v1.</p>
+            <p>Начните поиск, чтобы начать играть.</p>
           </div>
 
           <div className="profile-card">

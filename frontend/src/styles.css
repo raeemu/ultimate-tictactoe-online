@@ -342,14 +342,55 @@ button:disabled {
   align-items: start;
 }
 
+.result-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px 24px;
+}
+
+.result-banner h2 {
+  margin: 4px 0 6px;
+}
+
+.result-win {
+  border-color: #86efac;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 72%);
+}
+
+.result-loss {
+  border-color: #fecaca;
+  background: linear-gradient(135deg, #fff1f2 0%, #ffffff 72%);
+}
+
+.result-neutral {
+  border-color: #cbd5e1;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 72%);
+}
+
+.result-actions {
+  display: flex;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
 .board-panel {
   padding: 18px;
+}
+
+.board-panel-finished {
+  background: #fbfdff;
 }
 
 .ultimate-board {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+
+.ultimate-board-finished .mini-board {
+  opacity: 0.82;
 }
 
 .mini-board {
@@ -390,6 +431,12 @@ button:disabled {
   pointer-events: none;
 }
 
+.mini-board-draw .mini-board-result {
+  color: rgb(71 85 105 / 42%);
+  font-size: clamp(13px, 2vw, 22px);
+  letter-spacing: 0.02em;
+}
+
 .game-cell {
   aspect-ratio: 1;
   min-width: 0;
@@ -401,6 +448,16 @@ button:disabled {
   font-size: clamp(16px, 3vw, 30px);
   font-weight: 800;
   cursor: default;
+}
+
+.game-cell-playable {
+  border-color: #99f6e4;
+  cursor: pointer;
+}
+
+.game-cell-playable:hover {
+  background: #ccfbf1;
+  transform: translateY(-1px);
 }
 
 .game-cell-x {
@@ -421,6 +478,21 @@ button:disabled {
   padding: 24px;
   display: grid;
   gap: 16px;
+}
+
+.turn-banner {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  color: #475569;
+  background: #f8fafc;
+  font-weight: 800;
+}
+
+.turn-banner-active {
+  border-color: #99f6e4;
+  color: var(--primary);
+  background: #f0fdfa;
 }
 
 .match-facts {
@@ -465,11 +537,16 @@ button:disabled {
   }
 
   .game-header,
-  .game-content {
+  .game-content,
+  .result-banner {
     grid-template-columns: 1fr;
   }
 
   .game-header {
+    display: grid;
+  }
+
+  .result-banner {
     display: grid;
   }
 
