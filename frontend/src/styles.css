@@ -216,6 +216,171 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.profile-layout {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 20px;
+}
+
+.profile-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 24px;
+}
+
+.profile-avatar {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f766e 0%, #164e63 100%);
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.profile-title {
+  display: grid;
+  gap: 4px;
+}
+
+.profile-title h1 {
+  font-size: 28px;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgb(15 23 42 / 6%);
+}
+
+.stat-card p {
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 28px;
+}
+
+.stat-win strong {
+  color: var(--success);
+}
+
+.stat-loss strong {
+  color: var(--danger);
+}
+
+.history-panel {
+  padding: 24px;
+}
+
+.match-history-list {
+  display: grid;
+  gap: 10px;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto auto minmax(150px, 0.7fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.history-result {
+  min-width: 42px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-weight: 900;
+  background: #eef2ff;
+}
+
+.history-result.result-win {
+  color: var(--success);
+  background: #d1fae5;
+}
+
+.history-result.result-loss {
+  color: var(--danger);
+  background: #fee2e2;
+}
+
+.history-result.result-neutral {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.history-meta {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.history-rating {
+  min-width: 58px;
+  display: flex;
+  justify-content: center;
+}
+
+.rating-delta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.rating-delta-positive {
+  background: #d1fae5;
+  color: var(--success);
+}
+
+.rating-delta-negative {
+  background: #fee2e2;
+  color: var(--danger);
+}
+
+.history-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.history-error {
+  margin-top: 12px;
+}
+
 .panel-heading {
   display: flex;
   align-items: flex-start;
@@ -530,6 +695,16 @@ button:disabled {
 
   .lobby-hero {
     grid-template-columns: 1fr;
+  }
+
+  .profile-header,
+  .stats-grid,
+  .history-item {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-actions {
+    display: grid;
   }
 
   .panel-heading {

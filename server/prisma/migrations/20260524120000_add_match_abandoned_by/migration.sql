@@ -1,0 +1,3 @@
+ALTER TABLE "Match" ADD COLUMN "abandonedById" TEXT;
+
+ALTER TABLE "Match" ADD CONSTRAINT "Match_abandonedById_fkey" FOREIGN KEY ("abandonedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

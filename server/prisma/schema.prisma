@@ -20,6 +20,7 @@ model User {
   matchesAsX   Match[]  @relation("PlayerX")
   matchesAsO   Match[]  @relation("PlayerO")
   wonMatches    Match[]  @relation("Winner")
+  abandonedMatches Match[] @relation("AbandonedBy")
   moves        Move[]
 }
 
@@ -29,6 +30,7 @@ model Match {
   playerXId       String
   playerOId       String?
   winnerId        String?
+  abandonedById   String?
   currentTurn     CellValue   @default(X)
   activeBoard     Int?
   boardState      Json
@@ -41,6 +43,7 @@ model Match {
   playerX         User        @relation("PlayerX", fields: [playerXId], references: [id])
   playerO         User?       @relation("PlayerO", fields: [playerOId], references: [id])
   winner          User?       @relation("Winner", fields: [winnerId], references: [id])
+  abandonedBy     User?       @relation("AbandonedBy", fields: [abandonedById], references: [id])
   moves           Move[]
 }
 

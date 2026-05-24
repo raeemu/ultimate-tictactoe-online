@@ -19,9 +19,12 @@ const matchSnapshotSelect = {
   boardState: true,
   macroboardState: true,
   winnerId: true,
+  abandonedById: true,
   finishedAt: true,
   updatedAt: true,
 } satisfies Prisma.MatchSelect;
+
+const RATING_DELTA = 25;
 
 @Injectable()
 export class MatchesService {
@@ -52,6 +55,7 @@ export class MatchesService {
         status: true,
         playerXId: true,
         playerOId: true,
+        abandonedById: true,
       },
     });
 
@@ -67,13 +71,24 @@ export class MatchesService {
       return this.getMatchSnapshotForUser(matchId, userId);
     }
 
-    return this.prisma.match.update({
-      where: { id: matchId },
-      data: {
-        status: MatchStatus.ABANDONED,
-        finishedAt: new Date(),
-      },
-      select: matchSnapshotSelect,
+    return this.prisma.$transaction(async (tx) => {
+      const winnerId = this.resolveOpponentId(match.playerXId, match.playerOId, userId);
+      const updatedMatch = await tx.match.update({
+        where: { id: matchId },
+        data: {
+          status: MatchStatus.ABANDONED,
+          winnerId,
+          abandonedById: userId,
+          finishedAt: new Date(),
+        },
+        select: matchSnapshotSelect,
+      });
+
+      if (winnerId) {
+        await this.applyRatingDelta(tx, winnerId, userId);
+      }
+
+      return updatedMatch;
     });
   }
 
@@ -189,6 +204,13 @@ export class MatchesService {
           },
         });
 
+        if (nextState.status === 'FINISHED' && winnerId) {
+          const loserId = winnerId === match.playerXId ? match.playerOId : match.playerXId;
+          if (loserId) {
+            await this.applyRatingDelta(tx, winnerId, loserId);
+          }
+        }
+
         return {
           match: updatedMatch,
           move: createdMove,
@@ -213,6 +235,46 @@ export class MatchesService {
 
   private isParticipant(playerXId: string, playerOId: string | null, userId: string): boolean {
     return playerXId === userId || playerOId === userId;
+  }
+
+  private resolveOpponentId(
+    playerXId: string,
+    playerOId: string | null,
+    userId: string,
+  ): string | null {
+    if (playerXId === userId) {
+      return playerOId;
+    }
+
+    if (playerOId === userId) {
+      return playerXId;
+    }
+
+    return null;
+  }
+
+  private async applyRatingDelta(
+    tx: Prisma.TransactionClient,
+    winnerId: string,
+    loserId: string,
+  ) {
+    await tx.user.update({
+      where: { id: winnerId },
+      data: {
+        rating: {
+          increment: RATING_DELTA,
+        },
+      },
+    });
+
+    await tx.user.update({
+      where: { id: loserId },
+      data: {
+        rating: {
+          decrement: RATING_DELTA,
+        },
+      },
+    });
   }
 
   private resolvePlayerSymbol(

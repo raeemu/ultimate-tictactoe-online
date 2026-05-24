@@ -4,6 +4,7 @@ import { PrismaModule } from '../infrastructure/prisma/prisma.module';
 import { AuthModule } from '../modules/auth/auth.module';
 import { MatchmakingModule } from '../modules/matchmaking/matchmaking.module';
 import { MatchesModule } from '../modules/matches/matches.module';
+import { ProfileModule } from '../modules/profile/profile.module';
 import { WsModule } from '../modules/ws/ws.module';
 
 @Module({
@@ -13,6 +14,7 @@ import { WsModule } from '../modules/ws/ws.module';
     AuthModule,
     MatchmakingModule,
     MatchesModule,
+    ProfileModule,
     WsModule,
   ],
 })

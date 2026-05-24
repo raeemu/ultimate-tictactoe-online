@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { MatchmakingPanel } from "../features/matchmaking/components/MatchmakingPanel";
 import { useMatchmaking } from "../features/matchmaking/hooks/useMatchmaking";
 import { useAuth } from "../features/auth/components/AuthProvider";
@@ -13,13 +14,16 @@ export function LobbyPage() {
           <div>
             <p className="eyebrow">Ultimate Tic-Tac-Toe Online</p>
             <h1>Лобби</h1>
-            <p>Начните поиск, чтобы начать играть.</p>
+            <p>Начните поиск, чтобы сыграть онлайн-партию.</p>
           </div>
 
           <div className="profile-card">
             <p className="eyebrow">Игрок</p>
             <strong>{user?.username ?? "Игрок"}</strong>
             <span>{user?.email ?? "Email не указан"}</span>
+            <Link className="button-link button-link-secondary" to="/profile">
+              Профиль
+            </Link>
             <button type="button" className="secondary" onClick={logout}>
               Выйти
             </button>
