@@ -21,6 +21,9 @@ export function LobbyPage() {
             <p className="eyebrow">Игрок</p>
             <strong>{user?.username ?? "Игрок"}</strong>
             <span>{user?.email ?? "Email не указан"}</span>
+            <Link className="button-link button-link-secondary" to="/rules">
+              Правила
+            </Link>
             <Link className="button-link button-link-secondary" to="/profile">
               Профиль
             </Link>

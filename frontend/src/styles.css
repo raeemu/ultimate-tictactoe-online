@@ -82,6 +82,11 @@ p {
   gap: 12px;
 }
 
+.auth-rules-link {
+  width: 100%;
+  text-align: center;
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -500,6 +505,13 @@ button:disabled {
   margin: 4px 0;
 }
 
+.game-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
 .game-content {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -688,6 +700,173 @@ button:disabled {
   font-weight: 800;
 }
 
+.rules-layout {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 20px;
+}
+
+.rules-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.rules-header div {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+}
+
+.rules-header h1 {
+  font-size: 28px;
+}
+
+.rules-explainer {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+  gap: 24px;
+  align-items: center;
+}
+
+.rules-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.rules-copy h2,
+.rules-step h2 {
+  font-size: 20px;
+}
+
+.rules-scheme {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.85fr) auto minmax(220px, 1.15fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.rules-scheme-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rules-scheme-label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.rules-arrow {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--primary);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.rules-mini-board,
+.rules-macro-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  aspect-ratio: 1;
+}
+
+.rules-mini-board {
+  padding: 10px;
+  border: 2px solid #99f6e4;
+  border-radius: 14px;
+  background: #f0fdfa;
+}
+
+.rules-mini-cell,
+.rules-macro-cell {
+  min-width: 0;
+  border: 1px solid #dbe4ef;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.rules-mini-cell {
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+  font-size: clamp(18px, 4vw, 34px);
+  font-weight: 900;
+}
+
+.rules-mini-cell-active {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.rules-mini-cell-move {
+  border-color: var(--primary);
+  background: #ccfbf1;
+}
+
+.rules-macro-board {
+  padding: 8px;
+  border: 2px solid #cbd5e1;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.rules-macro-cell {
+  padding: 5px;
+}
+
+.rules-macro-cell-target {
+  border-color: var(--primary);
+  background: #ecfeff;
+  box-shadow: 0 0 0 3px rgb(15 118 110 / 14%);
+}
+
+.rules-macro-cell .rules-mini-board {
+  width: 100%;
+  height: 100%;
+  gap: 2px;
+  padding: 3px;
+  border-width: 1px;
+  border-radius: 7px;
+}
+
+.rules-macro-cell .rules-mini-cell {
+  border-radius: 3px;
+  font-size: 0;
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.rules-step {
+  display: grid;
+  gap: 10px;
+}
+
+.rules-step-number {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: #ffffff;
+  background: var(--primary);
+  font-weight: 900;
+}
+
 @media (max-width: 760px) {
   .app-page {
     padding: 20px;
@@ -713,16 +892,36 @@ button:disabled {
 
   .game-header,
   .game-content,
-  .result-banner {
+  .result-banner,
+  .rules-header,
+  .rules-explainer,
+  .rules-scheme,
+  .rules-grid {
     grid-template-columns: 1fr;
   }
 
-  .game-header {
+  .game-header,
+  .rules-header {
     display: grid;
+  }
+
+  .game-header-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .game-header-actions .button-link {
+    width: 100%;
+    text-align: center;
   }
 
   .result-banner {
     display: grid;
+  }
+
+  .rules-arrow {
+    transform: rotate(90deg);
+    justify-self: center;
   }
 
   .board-panel {

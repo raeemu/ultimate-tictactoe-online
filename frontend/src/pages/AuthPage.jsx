@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LoginForm } from "../features/auth/components/LoginForm";
 import { RegisterForm } from "../features/auth/components/RegisterForm";
 import { useAuth } from "../features/auth/components/AuthProvider";
@@ -117,6 +117,10 @@ export function AuthPage({ mode }) {
         )}
 
         {status ? <p>{status}</p> : null}
+
+        <Link className="button-link button-link-secondary auth-rules-link" to="/rules">
+          Правила игры
+        </Link>
       </section>
     </main>
   );

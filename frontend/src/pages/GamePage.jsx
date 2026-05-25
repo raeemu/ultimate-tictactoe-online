@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { GameBoard } from "../features/matches/components/GameBoard";
 import { MatchResultBanner } from "../features/matches/components/MatchResultBanner";
 import { MatchStatusPanel, resolvePlayerSymbol } from "../features/matches/components/MatchStatusPanel";
@@ -55,14 +55,19 @@ export function GamePage() {
             <h1>Ultimate Tic-Tac-Toe</h1>
             <p>Следите за подсвеченным полем и выбирайте клетку для хода. Игра сама подскажет, когда очередь за вами.</p>
           </div>
-          <button
-            className="button-link button-link-secondary"
-            disabled={abandonStatus === "leaving"}
-            onClick={goToLobby}
-            type="button"
-          >
-            В лобби
-          </button>
+          <div className="game-header-actions">
+            <Link className="button-link button-link-secondary" to="/rules">
+              Правила
+            </Link>
+            <button
+              className="button-link button-link-secondary"
+              disabled={abandonStatus === "leaving"}
+              onClick={goToLobby}
+              type="button"
+            >
+              В лобби
+            </button>
+          </div>
         </header>
 
         {error ? <p className="error-text panel">{error}</p> : null}
