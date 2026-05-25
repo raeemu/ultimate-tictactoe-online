@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { MatchStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -54,10 +58,7 @@ export class ProfileService {
     const [statMatches, recentMatches] = await Promise.all([
       this.prisma.match.findMany({
         where: {
-          OR: [
-            { playerXId: userId },
-            { playerOId: userId },
-          ],
+          OR: [{ playerXId: userId }, { playerOId: userId }],
         },
         select: {
           status: true,
@@ -67,10 +68,7 @@ export class ProfileService {
       }),
       this.prisma.match.findMany({
         where: {
-          OR: [
-            { playerXId: userId },
-            { playerOId: userId },
-          ],
+          OR: [{ playerXId: userId }, { playerOId: userId }],
         },
         orderBy: { updatedAt: 'desc' },
         skip: offset,
@@ -137,19 +135,25 @@ export class ProfileService {
   }
 
   private buildStats(matches: StatsMatch[], userId: string) {
-    const resolved = matches.filter((match) => (
-      match.status === MatchStatus.FINISHED || match.status === MatchStatus.ABANDONED
-    ));
+    const resolved = matches.filter(
+      (match) =>
+        match.status === MatchStatus.FINISHED ||
+        match.status === MatchStatus.ABANDONED,
+    );
 
     return {
       total: matches.length,
-      active: matches.filter((match) => match.status === MatchStatus.ACTIVE).length,
+      active: matches.filter((match) => match.status === MatchStatus.ACTIVE)
+        .length,
       wins: resolved.filter((match) => match.winnerId === userId).length,
-      losses: resolved.filter((match) => match.winnerId && match.winnerId !== userId).length,
-      draws: matches.filter((match) => (
-        match.status === MatchStatus.FINISHED && !match.winnerId
-      )).length,
-      abandoned: matches.filter((match) => match.abandonedById === userId).length,
+      losses: resolved.filter(
+        (match) => match.winnerId && match.winnerId !== userId,
+      ).length,
+      draws: matches.filter(
+        (match) => match.status === MatchStatus.FINISHED && !match.winnerId,
+      ).length,
+      abandoned: matches.filter((match) => match.abandonedById === userId)
+        .length,
     };
   }
 
@@ -213,7 +217,11 @@ export class ProfileService {
     return match.status;
   }
 
-  private resolveRatingDelta(result: string, match?: ProfileMatch, userId?: string) {
+  private resolveRatingDelta(
+    result: string,
+    match?: ProfileMatch,
+    userId?: string,
+  ) {
     if (match?.status === MatchStatus.ABANDONED && userId) {
       if (match.abandonedById === userId) {
         return -RATING_DELTA;

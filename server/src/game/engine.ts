@@ -50,7 +50,10 @@ export function applyMove(
   nextCells[globalIndex] = player;
 
   const nextMiniBoards = [...state.miniBoards];
-  nextMiniBoards[move.localBoard] = resolveMiniBoardWinner(nextCells, move.localBoard);
+  nextMiniBoards[move.localBoard] = resolveMiniBoardWinner(
+    nextCells,
+    move.localBoard,
+  );
 
   const macroWinner = resolveMacroWinner(nextMiniBoards);
   const nextMoveCount = state.moveCount + 1;
@@ -61,7 +64,10 @@ export function applyMove(
   return {
     cells: nextCells,
     miniBoards: nextMiniBoards,
-    activeBoard: status === 'FINISHED' ? null : resolveNextActiveBoard(nextMiniBoards, move.localCell),
+    activeBoard:
+      status === 'FINISHED'
+        ? null
+        : resolveNextActiveBoard(nextMiniBoards, move.localCell),
     currentTurn: player === 'X' ? 'O' : 'X',
     status,
     winner,
@@ -83,8 +89,12 @@ export function resolveMiniBoardWinner(
   return boardCells.some((cell) => cell === null) ? 'OPEN' : 'DRAW';
 }
 
-export function resolveMacroWinner(miniBoards: MiniBoardState[]): CellValue | null {
-  const values = miniBoards.map((state) => (state === 'X' || state === 'O' ? state : null));
+export function resolveMacroWinner(
+  miniBoards: MiniBoardState[],
+): CellValue | null {
+  const values = miniBoards.map((state) =>
+    state === 'X' || state === 'O' ? state : null,
+  );
   return findWinner(values);
 }
 
@@ -141,7 +151,10 @@ function isBoardIndex(value: number): boolean {
   return Number.isInteger(value) && value >= 0 && value <= 8;
 }
 
-function getMiniBoardCells(cells: CellState[], localBoard: number): CellState[] {
+function getMiniBoardCells(
+  cells: CellState[],
+  localBoard: number,
+): CellState[] {
   const startIndex = localBoard * 9;
   return cells.slice(startIndex, startIndex + 9);
 }

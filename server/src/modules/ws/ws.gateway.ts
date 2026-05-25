@@ -25,11 +25,23 @@ type SocketUser = {
   username: string;
 };
 
-type AuthenticatedSocket = Socket & {
-  data: {
-    user?: SocketUser;
-  };
+type SocketData = {
+  user?: SocketUser;
 };
+
+type ServerToClientEvents = {
+  error: (payload: { message: string }) => void;
+  'match:joined': (payload: { room: string; match: unknown }) => void;
+  'match:move': (payload: unknown) => void;
+  'match:abandoned': (payload: { match: unknown }) => void;
+};
+
+type AuthenticatedSocket = Socket<
+  Record<string, never>,
+  ServerToClientEvents,
+  Record<string, never>,
+  SocketData
+>;
 
 @WebSocketGateway({
   namespace: '/matches',
@@ -40,7 +52,7 @@ type AuthenticatedSocket = Socket & {
 })
 export class WsGateway implements OnGatewayConnection {
   @WebSocketServer()
-  server!: Server;
+  server!: Server<Record<string, never>, ServerToClientEvents>;
 
   private readonly logger = new Logger(WsGateway.name);
 
@@ -57,7 +69,10 @@ export class WsGateway implements OnGatewayConnection {
         throw new UnauthorizedException('Missing auth token');
       }
 
-      const payload = await this.jwtService.verifyAsync<{ sub: string; username: string }>(token, {
+      const payload = await this.jwtService.verifyAsync<{
+        sub: string;
+        username: string;
+      }>(token, {
         secret: this.configService.get<string>('JWT_SECRET', 'dev-secret'),
       });
 
@@ -73,7 +88,13 @@ export class WsGateway implements OnGatewayConnection {
   }
 
   @SubscribeMessage('match:join')
-  @UsePipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }))
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
   async onJoinMatch(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: JoinMatchDto,
@@ -83,7 +104,10 @@ export class WsGateway implements OnGatewayConnection {
       throw new UnauthorizedException('Unauthorized');
     }
 
-    const match = await this.matchesService.getMatchSnapshotForUser(payload.matchId, userId);
+    const match = await this.matchesService.getMatchSnapshotForUser(
+      payload.matchId,
+      userId,
+    );
     const room = this.getMatchRoom(payload.matchId);
     await client.join(room);
 
@@ -99,7 +123,13 @@ export class WsGateway implements OnGatewayConnection {
   }
 
   @SubscribeMessage('match:move')
-  @UsePipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }))
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
   async onCreateMove(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: WsMoveDto,
@@ -114,10 +144,14 @@ export class WsGateway implements OnGatewayConnection {
       throw new ForbiddenException('Join match room before sending moves');
     }
 
-    const result = await this.matchesService.createMove(payload.matchId, userId, {
-      localBoard: payload.localBoard,
-      localCell: payload.localCell,
-    });
+    const result = await this.matchesService.createMove(
+      payload.matchId,
+      userId,
+      {
+        localBoard: payload.localBoard,
+        localCell: payload.localCell,
+      },
+    );
 
     this.server.to(room).emit('match:move', result);
 
@@ -128,7 +162,13 @@ export class WsGateway implements OnGatewayConnection {
   }
 
   @SubscribeMessage('match:abandon')
-  @UsePipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }))
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
   async onAbandonMatch(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: JoinMatchDto,
@@ -143,7 +183,10 @@ export class WsGateway implements OnGatewayConnection {
       throw new ForbiddenException('Join match room before abandoning match');
     }
 
-    const match = await this.matchesService.abandonMatch(payload.matchId, userId);
+    const match = await this.matchesService.abandonMatch(
+      payload.matchId,
+      userId,
+    );
 
     this.server.to(room).emit('match:abandoned', { match });
 
@@ -157,8 +200,13 @@ export class WsGateway implements OnGatewayConnection {
     return `match:${matchId}`;
   }
 
-  private extractToken(client: Socket): string | null {
-    const authToken = client.handshake.auth?.token;
+  private extractToken(client: AuthenticatedSocket): string | null {
+    const auth = client.handshake.auth as unknown;
+    const authToken =
+      auth && typeof auth === 'object' && 'token' in auth
+        ? auth.token
+        : undefined;
+
     if (typeof authToken === 'string' && authToken.trim().length > 0) {
       return authToken;
     }

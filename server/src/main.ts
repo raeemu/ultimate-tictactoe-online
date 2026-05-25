@@ -23,12 +23,15 @@ async function bootstrap() {
   express.get('/', (_req: Request, res: Response) => {
     res.redirect('/auth');
   });
-  express.get(['/auth', '/register', '/lobby', '/profile', '/game/:matchId'], (_req: Request, res: Response) => {
-    res.sendFile(join(frontendRoot, 'index.html'));
-  });
+  express.get(
+    ['/auth', '/register', '/lobby', '/profile', '/game/:matchId'],
+    (_req: Request, res: Response) => {
+      res.sendFile(join(frontendRoot, 'index.html'));
+    },
+  );
 
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port, '0.0.0.0');
   console.log(`Server listening on port ${port}`);
 }
-bootstrap();
+void bootstrap();

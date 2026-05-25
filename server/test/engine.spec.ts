@@ -49,9 +49,9 @@ describe('game-core engine', () => {
   it('rejects move by wrong player', () => {
     const state = createInitialState();
 
-    expect(() => applyMove(state, { localBoard: 0, localCell: 0 }, 'O')).toThrow(
-      GameRuleError,
-    );
+    expect(() =>
+      applyMove(state, { localBoard: 0, localCell: 0 }, 'O'),
+    ).toThrow(GameRuleError);
   });
 
   it('rejects move outside active board', () => {

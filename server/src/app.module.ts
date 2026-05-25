@@ -18,4 +18,4 @@ import { WsModule } from './modules/ws/ws.module';
     WsModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}
