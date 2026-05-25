@@ -1,0 +1,13 @@
+{
+  "name": "ultimate-tictactoe-online",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "railway:build": "cd frontend && npm ci && npm run build && cd ../server && npm ci && npx prisma generate && npm run build",
+    "railway:migrate": "cd server && npx prisma migrate deploy",
+    "railway:start": "cd server && npm run start:prod"
+  }
+}
