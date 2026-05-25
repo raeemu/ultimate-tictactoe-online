@@ -25,7 +25,7 @@ async function parseError(res) {
     const data = await res.json();
     const msg = data?.message ?? `HTTP ${res.status}`;
     return Array.isArray(msg) ? msg.join(", ") : msg;
-  } catch (_e) {
+  } catch {
     return `HTTP ${res.status}`;
   }
 }

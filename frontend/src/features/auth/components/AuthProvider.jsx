@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
         if (!cancelled) {
           setUser(currentUser);
         }
-      } catch (_err) {
+      } catch {
         if (!cancelled) {
           logout();
         }
