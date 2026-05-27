@@ -1,7 +1,11 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { GameBoard } from "../features/matches/components/GameBoard";
 import { MatchResultBanner } from "../features/matches/components/MatchResultBanner";
-import { MatchStatusPanel, resolvePlayerSymbol } from "../features/matches/components/MatchStatusPanel";
+import {
+  MatchStatusPanel,
+  resolvePlayerSymbol,
+} from "../features/matches/components/MatchStatusPanel";
+import { TurnTimerPanel } from "../features/matches/components/TurnTimerPanel";
 import { useMatchConnection } from "../features/matches/hooks/useMatchConnection";
 import { useAuth } from "../features/auth/components/AuthProvider";
 import { useMatchmaking } from "../features/matchmaking/hooks/useMatchmaking";
@@ -21,9 +25,12 @@ export function GamePage() {
     moveStatus,
     sendMove,
     status,
+    turnDeadline,
   } = useMatchConnection(matchId, token);
   const playerSymbol = resolvePlayerSymbol(match, user?.id);
-  const isMatchOver = Boolean(match && match.status !== "ACTIVE" && match.status !== "WAITING");
+  const isMatchOver = Boolean(
+    match && match.status !== "ACTIVE" && match.status !== "WAITING",
+  );
   const canMove = Boolean(
     match &&
     !isMatchOver &&
@@ -53,7 +60,10 @@ export function GamePage() {
           <div>
             <p className="eyebrow">Партия</p>
             <h1>Ultimate Tic-Tac-Toe</h1>
-            <p>Следите за подсвеченным полем и выбирайте клетку для хода. Игра сама подскажет, когда очередь за вами.</p>
+            <p>
+              Следите за подсвеченным полем и выбирайте клетку для хода. Игра
+              сама подскажет, когда очередь за вами.
+            </p>
           </div>
           <div className="game-header-actions">
             <Link className="button-link button-link-secondary" to="/rules">
@@ -72,10 +82,20 @@ export function GamePage() {
 
         {error ? <p className="error-text panel">{error}</p> : null}
 
-        <MatchResultBanner match={match} matchmaking={matchmaking} playerId={user?.id} />
+        <MatchResultBanner
+          match={match}
+          matchmaking={matchmaking}
+          playerId={user?.id}
+        />
 
         <div className="game-content">
-          <section className={isMatchOver ? "panel board-panel board-panel-finished" : "panel board-panel"}>
+          <section
+            className={
+              isMatchOver
+                ? "panel board-panel board-panel-finished"
+                : "panel board-panel"
+            }
+          >
             {match ? (
               <GameBoard
                 activeBoard={match.activeBoard}
@@ -87,20 +107,30 @@ export function GamePage() {
               />
             ) : (
               <div className="board-placeholder">
-                <p>{status === "error" ? "Не удалось открыть партию" : "Готовим поле..."}</p>
+                <p>
+                  {status === "error"
+                    ? "Не удалось открыть партию"
+                    : "Готовим поле..."}
+                </p>
               </div>
             )}
           </section>
 
-          <MatchStatusPanel
-            abandonError={abandonError}
-            abandonStatus={abandonStatus}
-            connectionStatus={status}
-            match={match}
-            moveError={moveError}
-            moveStatus={moveStatus}
-            playerId={user?.id}
-          />
+          <aside className="game-side">
+            <MatchStatusPanel
+              abandonError={abandonError}
+              abandonStatus={abandonStatus}
+              connectionStatus={status}
+              match={match}
+              moveError={moveError}
+              moveStatus={moveStatus}
+              playerId={user?.id}
+            />
+            <TurnTimerPanel
+              deadline={turnDeadline}
+              isActive={Boolean(match?.status === "ACTIVE")}
+            />
+          </aside>
         </div>
       </section>
     </main>

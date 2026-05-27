@@ -13,14 +13,31 @@ const matchStatusText = {
   ABANDONED: "Партия покинута",
 };
 
-export function MatchStatusPanel({ abandonError, abandonStatus, connectionStatus, match, moveError, moveStatus, playerId }) {
+export function MatchStatusPanel({
+  abandonError,
+  abandonStatus,
+  connectionStatus,
+  match,
+  moveError,
+  moveStatus,
+  playerId,
+}) {
   const playerSymbol = resolvePlayerSymbol(match, playerId);
-  const isMyTurn = Boolean(playerSymbol && match?.currentTurn === playerSymbol && match?.status === "ACTIVE");
-  const isMatchOver = Boolean(match && match.status !== "ACTIVE" && match.status !== "WAITING");
-  const activeBoardLabel = match?.activeBoard === null || match?.activeBoard === undefined
-    ? "Можно выбрать любое открытое поле"
-    : `Играем в поле ${match.activeBoard + 1}`;
-  const panelTitle = match ? matchStatusText[match.status] ?? connectionText[connectionStatus] : connectionText[connectionStatus];
+  const isMyTurn = Boolean(
+    playerSymbol &&
+    match?.currentTurn === playerSymbol &&
+    match?.status === "ACTIVE",
+  );
+  const isMatchOver = Boolean(
+    match && match.status !== "ACTIVE" && match.status !== "WAITING",
+  );
+  const activeBoardLabel =
+    match?.activeBoard === null || match?.activeBoard === undefined
+      ? "Можно выбрать любое открытое поле"
+      : `Играем в поле ${match.activeBoard + 1}`;
+  const panelTitle = match
+    ? (matchStatusText[match.status] ?? connectionText[connectionStatus])
+    : connectionText[connectionStatus];
   const playerTurnLabel = getTurnLabel(match, isMyTurn);
 
   return (
@@ -30,12 +47,18 @@ export function MatchStatusPanel({ abandonError, abandonStatus, connectionStatus
 
       {match ? (
         <>
-          <div className={isMyTurn ? "turn-banner turn-banner-active" : "turn-banner"}>
+          <div
+            className={
+              isMyTurn ? "turn-banner turn-banner-active" : "turn-banner"
+            }
+          >
             {moveStatus === "sending" ? "Отправляем ход..." : playerTurnLabel}
           </div>
 
           {moveError ? <p className="error-text">{moveError}</p> : null}
-          {abandonStatus === "leaving" ? <p className="helper-text">Покидаем партию...</p> : null}
+          {abandonStatus === "leaving" ? (
+            <p className="helper-text">Покидаем партию...</p>
+          ) : null}
           {abandonError ? <p className="error-text">{abandonError}</p> : null}
 
           <dl className="match-facts">
@@ -45,7 +68,11 @@ export function MatchStatusPanel({ abandonError, abandonStatus, connectionStatus
             </div>
             <div>
               <dt>{isMatchOver ? "Что дальше" : "Куда ходить"}</dt>
-              <dd>{isMatchOver ? "Можно вернуться в лобби и начать новую партию" : activeBoardLabel}</dd>
+              <dd>
+                {isMatchOver
+                  ? "Можно вернуться в лобби и начать новую партию"
+                  : activeBoardLabel}
+              </dd>
             </div>
           </dl>
         </>

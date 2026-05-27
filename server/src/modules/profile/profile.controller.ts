@@ -21,4 +21,9 @@ export class ProfileController {
   ) {
     return this.profileService.getMyProfile(req.user.id, offset);
   }
+
+  @Get('leaderboard')
+  getLeaderboard() {
+    return this.profileService.getLeaderboard();
+  }
 }

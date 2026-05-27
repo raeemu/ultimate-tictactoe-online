@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Global, Injectable, Module, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -10,7 +10,7 @@ export class RedisService implements OnModuleDestroy {
     const redisUrl = configService.get<string>('REDIS_URL');
 
     if (!redisUrl) {
-      throw new Error('REDIS_URL is required for matchmaking');
+      throw new Error('REDIS_URL is required');
     }
 
     this.client = new Redis(redisUrl, {
@@ -23,3 +23,10 @@ export class RedisService implements OnModuleDestroy {
     await this.client.quit();
   }
 }
+
+@Global()
+@Module({
+  providers: [RedisService],
+  exports: [RedisService],
+})
+export class RedisModule {}

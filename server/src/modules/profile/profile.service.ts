@@ -5,9 +5,12 @@ import {
 } from '@nestjs/common';
 import { MatchStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
 
 const RATING_DELTA = 25;
 const HISTORY_PAGE_SIZE = 20;
+const LEADERBOARD_CACHE_KEY = 'leaderboard:rating:top';
+const LEADERBOARD_CACHE_TTL_SECONDS = 60;
 
 type StatsMatch = {
   status: MatchStatus;
@@ -35,7 +38,10 @@ type ProfileMatch = {
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
 
   async getMyProfile(userId: string, offsetParam?: string) {
     const offset = this.parseOffset(offsetParam);
@@ -132,6 +138,40 @@ export class ProfileService {
         hasMore: recentMatches.length > HISTORY_PAGE_SIZE,
       },
     };
+  }
+
+  async getLeaderboard() {
+    const cached = await this.redis.get(LEADERBOARD_CACHE_KEY);
+    if (cached) {
+      return JSON.parse(cached) as {
+        players: Array<{ id: string; username: string; rating: number }>;
+        cached: boolean;
+      };
+    }
+
+    const players = await this.prisma.user.findMany({
+      orderBy: [{ rating: 'desc' }, { username: 'asc' }],
+      take: 20,
+      select: {
+        id: true,
+        username: true,
+        rating: true,
+      },
+    });
+    const payload = { players, cached: false };
+
+    await this.redis.set(
+      LEADERBOARD_CACHE_KEY,
+      JSON.stringify({ players, cached: true }),
+      'EX',
+      LEADERBOARD_CACHE_TTL_SECONDS,
+    );
+
+    return payload;
+  }
+
+  private get redis() {
+    return this.redisService.client;
   }
 
   private buildStats(matches: StatsMatch[], userId: string) {

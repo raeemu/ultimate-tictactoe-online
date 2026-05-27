@@ -8,8 +8,10 @@ const initialState = {
   match: null,
   moveError: "",
   moveStatus: "idle",
+  activePlayerIds: [],
   room: "",
   status: "connecting",
+  turnDeadline: null,
 };
 
 export function useMatchConnection(matchId, token) {
@@ -56,11 +58,21 @@ export function useMatchConnection(matchId, token) {
     socket.on("exception", (payload) => {
       setState((current) => ({
         ...current,
-        abandonError: current.abandonStatus === "leaving" ? payload?.message || "Не удалось покинуть матч" : current.abandonError,
-        abandonStatus: current.abandonStatus === "leaving" ? "error" : current.abandonStatus,
-        error: current.match ? current.error : payload?.message || "Не удалось присоединиться к матчу",
-        moveError: current.moveStatus === "sending" ? payload?.message || "Ход отклонен сервером" : current.moveError,
-        moveStatus: current.moveStatus === "sending" ? "error" : current.moveStatus,
+        abandonError:
+          current.abandonStatus === "leaving"
+            ? payload?.message || "Не удалось покинуть матч"
+            : current.abandonError,
+        abandonStatus:
+          current.abandonStatus === "leaving" ? "error" : current.abandonStatus,
+        error: current.match
+          ? current.error
+          : payload?.message || "Не удалось присоединиться к матчу",
+        moveError:
+          current.moveStatus === "sending"
+            ? payload?.message || "Ход отклонен сервером"
+            : current.moveError,
+        moveStatus:
+          current.moveStatus === "sending" ? "error" : current.moveStatus,
         status: current.match ? current.status : "error",
       }));
     });
@@ -74,8 +86,10 @@ export function useMatchConnection(matchId, token) {
         match: payload.match,
         moveError: "",
         moveStatus: "idle",
+        activePlayerIds: [],
         room: payload.room,
         status: "joined",
+        turnDeadline: null,
       });
     });
 
@@ -83,6 +97,34 @@ export function useMatchConnection(matchId, token) {
       setState((current) => ({
         ...current,
         error: "",
+        match: current.match
+          ? {
+              ...current.match,
+              ...payload.match,
+            }
+          : payload.match,
+        moveError: "",
+        moveStatus: "idle",
+      }));
+    });
+
+    socket.on("match:presence", (payload) => {
+      setState((current) => ({
+        ...current,
+        activePlayerIds: payload?.activePlayerIds ?? [],
+      }));
+    });
+
+    socket.on("match:turn-deadline", (payload) => {
+      setState((current) => ({
+        ...current,
+        turnDeadline: payload?.deadline ?? null,
+      }));
+    });
+
+    socket.on("match:turn-timeout", (payload) => {
+      setState((current) => ({
+        ...current,
         match: current.match
           ? {
               ...current.match,
@@ -125,66 +167,78 @@ export function useMatchConnection(matchId, token) {
     };
   }, [matchId, token]);
 
-  const sendMove = useCallback((localBoard, localCell) => {
-    const socket = socketRef.current;
-    if (!socket || !socket.connected) {
-      setState((current) => ({
-        ...current,
-        moveError: "Нет подключения к матчу",
-        moveStatus: "error",
-      }));
-      return;
-    }
-
-    setState((current) => ({
-      ...current,
-      moveError: "",
-      moveStatus: "sending",
-    }));
-
-    socket.emit("match:move", { matchId, localBoard, localCell }, (ack) => {
-      if (ack?.ok) {
+  const sendMove = useCallback(
+    (localBoard, localCell) => {
+      const socket = socketRef.current;
+      if (!socket || !socket.connected) {
+        setState((current) => ({
+          ...current,
+          moveError: "Нет подключения к матчу",
+          moveStatus: "error",
+        }));
         return;
       }
 
       setState((current) => ({
         ...current,
-        moveError: ack?.message || "Сервер не подтвердил ход",
-        moveStatus: "error",
+        moveError: "",
+        moveStatus: "sending",
       }));
-    });
-  }, [matchId]);
 
-  const abandonMatch = useCallback((onSuccess) => {
-    const socket = socketRef.current;
-    if (!socket || !socket.connected) {
-      setState((current) => ({
-        ...current,
-        abandonError: "Нет подключения к матчу",
-        abandonStatus: "error",
-      }));
-      return;
-    }
+      const clientMoveId =
+        window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+      socket.emit(
+        "match:move",
+        { matchId, localBoard, localCell, clientMoveId },
+        (ack) => {
+          if (ack?.ok) {
+            return;
+          }
 
-    setState((current) => ({
-      ...current,
-      abandonError: "",
-      abandonStatus: "leaving",
-    }));
+          setState((current) => ({
+            ...current,
+            moveError: ack?.message || "Сервер не подтвердил ход",
+            moveStatus: "error",
+          }));
+        },
+      );
+    },
+    [matchId],
+  );
 
-    socket.emit("match:abandon", { matchId }, (ack) => {
-      if (ack?.ok) {
-        onSuccess?.();
+  const abandonMatch = useCallback(
+    (onSuccess) => {
+      const socket = socketRef.current;
+      if (!socket || !socket.connected) {
+        setState((current) => ({
+          ...current,
+          abandonError: "Нет подключения к матчу",
+          abandonStatus: "error",
+        }));
         return;
       }
 
       setState((current) => ({
         ...current,
-        abandonError: ack?.message || "Не удалось покинуть матч",
-        abandonStatus: "error",
+        abandonError: "",
+        abandonStatus: "leaving",
       }));
-    });
-  }, [matchId]);
+
+      socket.emit("match:abandon", { matchId }, (ack) => {
+        if (ack?.ok) {
+          onSuccess?.();
+          return;
+        }
+
+        setState((current) => ({
+          ...current,
+          abandonError: ack?.message || "Не удалось покинуть матч",
+          abandonStatus: "error",
+        }));
+      });
+    },
+    [matchId],
+  );
 
   return {
     ...state,

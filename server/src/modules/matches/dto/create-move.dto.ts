@@ -1,4 +1,11 @@
-import { IsInt, Max, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateMoveDto {
   @IsInt()
@@ -10,4 +17,9 @@ export class CreateMoveDto {
   @Min(0)
   @Max(8)
   localCell!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  clientMoveId?: string;
 }

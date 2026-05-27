@@ -18,6 +18,8 @@ export default defineConfig({
         bypass: keepSpaPageOnFrontend,
       },
       "/matchmaking": "http://localhost:3000",
+      "/invites": "http://localhost:3000",
+      "/leaderboard": "http://localhost:3000",
       "/matches": {
         target: "http://localhost:3000",
         ws: true,

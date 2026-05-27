@@ -13,6 +13,7 @@ import {
   UltimateGameState,
 } from '../../game';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
 
 const matchSnapshotSelect = {
   id: true,
@@ -30,10 +31,16 @@ const matchSnapshotSelect = {
 } satisfies Prisma.MatchSelect;
 
 const RATING_DELTA = 25;
+const MOVE_IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
+const MOVE_PROCESSING_TTL_MS = 10000;
+const LEADERBOARD_CACHE_KEY = 'leaderboard:rating:top';
 
 @Injectable()
 export class MatchesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
 
   async getMatchSnapshotForUser(matchId: string, userId: string) {
     const match = await this.prisma.match.findUnique({
@@ -104,7 +111,119 @@ export class MatchesService {
     });
   }
 
-  async createMove(matchId: string, userId: string, move: MoveInput) {
+  async createMove(
+    matchId: string,
+    userId: string,
+    move: MoveInput & { clientMoveId?: string },
+  ) {
+    if (move.clientMoveId) {
+      return this.createMoveIdempotently(matchId, userId, {
+        ...move,
+        clientMoveId: move.clientMoveId,
+      });
+    }
+
+    return this.createMoveOnce(matchId, userId, move);
+  }
+
+  async timeoutCurrentTurn(matchId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Match" WHERE id = ${matchId} FOR UPDATE`;
+
+      const match = await tx.match.findUnique({
+        where: { id: matchId },
+        select: {
+          id: true,
+          status: true,
+          playerXId: true,
+          playerOId: true,
+          currentTurn: true,
+        },
+      });
+
+      if (!match) {
+        return null;
+      }
+
+      if (match.status !== MatchStatus.ACTIVE) {
+        return tx.match.findUnique({
+          where: { id: matchId },
+          select: matchSnapshotSelect,
+        });
+      }
+
+      return tx.match.update({
+        where: { id: matchId },
+        data: {
+          currentTurn: match.currentTurn === 'X' ? 'O' : 'X',
+        },
+        select: matchSnapshotSelect,
+      });
+    });
+  }
+
+  private async createMoveIdempotently(
+    matchId: string,
+    userId: string,
+    move: MoveInput & { clientMoveId: string },
+  ) {
+    const key = this.moveIdempotencyKey(matchId, userId, move.clientMoveId);
+    const cached = await this.redis.get(key);
+    if (cached && cached !== 'PROCESSING') {
+      return JSON.parse(cached) as Awaited<
+        ReturnType<typeof this.createMoveOnce>
+      >;
+    }
+
+    const acquired = await this.redis.set(
+      key,
+      'PROCESSING',
+      'PX',
+      MOVE_PROCESSING_TTL_MS,
+      'NX',
+    );
+
+    if (acquired !== 'OK') {
+      return this.waitForIdempotentMove(key);
+    }
+
+    try {
+      const result = await this.createMoveOnce(matchId, userId, move);
+      await this.redis.set(
+        key,
+        JSON.stringify(result),
+        'EX',
+        MOVE_IDEMPOTENCY_TTL_SECONDS,
+      );
+      return result;
+    } catch (error) {
+      await this.redis.del(key);
+      throw error;
+    }
+  }
+
+  private async waitForIdempotentMove(key: string) {
+    const deadline = Date.now() + MOVE_PROCESSING_TTL_MS;
+
+    while (Date.now() < deadline) {
+      const cached = await this.redis.get(key);
+      if (cached && cached !== 'PROCESSING') {
+        return JSON.parse(cached) as Awaited<
+          ReturnType<typeof this.createMoveOnce>
+        >;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+
+    throw new ConflictException('Move is still being processed');
+  }
+
+  private async createMoveOnce(
+    matchId: string,
+    userId: string,
+    move: MoveInput,
+  ) {
     try {
       return await this.prisma.$transaction(
         async (tx) => {
@@ -239,6 +358,10 @@ export class MatchesService {
             }
           }
 
+          if (nextState.status === 'FINISHED') {
+            await this.redis.del(LEADERBOARD_CACHE_KEY);
+          }
+
           return {
             match: updatedMatch,
             move: createdMove,
@@ -309,6 +432,20 @@ export class MatchesService {
         },
       },
     });
+
+    await this.redis.del(LEADERBOARD_CACHE_KEY);
+  }
+
+  private get redis() {
+    return this.redisService.client;
+  }
+
+  private moveIdempotencyKey(
+    matchId: string,
+    userId: string,
+    clientMoveId: string,
+  ) {
+    return `move:idempotency:${matchId}:${userId}:${clientMoveId}`;
   }
 
   private resolvePlayerSymbol(

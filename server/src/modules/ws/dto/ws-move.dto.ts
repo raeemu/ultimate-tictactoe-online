@@ -1,4 +1,12 @@
-import { IsInt, IsUUID, Max, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class WsMoveDto {
   @IsUUID()
@@ -13,4 +21,9 @@ export class WsMoveDto {
   @Min(0)
   @Max(8)
   localCell!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  clientMoveId?: string;
 }

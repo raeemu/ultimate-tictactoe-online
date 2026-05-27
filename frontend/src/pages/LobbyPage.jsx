@@ -2,10 +2,13 @@ import { Link } from "react-router-dom";
 import { MatchmakingPanel } from "../features/matchmaking/components/MatchmakingPanel";
 import { useMatchmaking } from "../features/matchmaking/hooks/useMatchmaking";
 import { useAuth } from "../features/auth/components/AuthProvider";
+import { LobbyRedisPanel } from "../features/lobby/LobbyRedisPanel";
+import { useLobbyRedisFeatures } from "../features/lobby/useLobbyRedisFeatures";
 
 export function LobbyPage() {
   const { logout, token, user } = useAuth();
   const matchmaking = useMatchmaking(token);
+  const redisFeatures = useLobbyRedisFeatures(token);
 
   return (
     <main className="app-page">
@@ -33,7 +36,11 @@ export function LobbyPage() {
           </div>
         </header>
 
-        <MatchmakingPanel matchmaking={matchmaking} />
+        <MatchmakingPanel
+          inviteFeatures={redisFeatures}
+          matchmaking={matchmaking}
+        />
+        <LobbyRedisPanel features={redisFeatures} />
       </section>
     </main>
   );

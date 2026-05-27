@@ -3,7 +3,7 @@ import { MatchStatus } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { createInitialState } from '../../game';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RedisService } from './redis.service';
+import { RedisService } from '../../redis/redis.service';
 
 type MatchmakingMatch = {
   id: string;
@@ -19,8 +19,9 @@ type MatchmakingMatch = {
 @Injectable()
 export class MatchmakingService {
   private readonly queueKey = 'matchmaking:queue';
-  private readonly queueMembersKey = 'matchmaking:queue:members';
   private readonly lockKey = 'matchmaking:lock';
+  private readonly ratingWindowStep = 25;
+  private readonly ratingWindowStepMs = 3000;
   private readonly pendingMatchTtlSeconds = 30 * 60;
   private readonly lockAcquireTimeoutMs = 5000;
   private readonly lockTtlMs = 15000;
@@ -39,10 +40,12 @@ export class MatchmakingService {
       };
     }
 
+    if (await this.isQueued(userId)) {
+      return this.joinQueue(userId);
+    }
+
     return {
-      status: (await this.isQueued(userId))
-        ? ('SEARCHING' as const)
-        : ('NOT_IN_QUEUE' as const),
+      status: 'NOT_IN_QUEUE' as const,
     };
   }
 
@@ -64,10 +67,19 @@ export class MatchmakingService {
         };
       }
 
-      const waitingOpponent = await this.dequeueOpponent(userId);
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { rating: true },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const waitingOpponent = await this.dequeueOpponent(userId, user.rating);
 
       if (!waitingOpponent) {
-        await this.enqueueUser(userId);
+        await this.enqueueUser(userId, user.rating);
 
         return {
           status: 'SEARCHING' as const,
@@ -116,7 +128,7 @@ export class MatchmakingService {
   }
 
   async getQueueSize() {
-    return this.redis.llen(this.queueKey);
+    return this.redis.zcard(this.queueKey);
   }
 
   private get redis() {
@@ -138,15 +150,29 @@ export class MatchmakingService {
     return this.parsePendingMatch(rawMatch);
   }
 
-  private async dequeueOpponent(userId: string): Promise<string | null> {
-    while (await this.redis.llen(this.queueKey)) {
-      const opponentId = await this.redis.lpop(this.queueKey);
-      if (!opponentId) {
-        return null;
+  private async dequeueOpponent(
+    userId: string,
+    rating: number,
+  ): Promise<string | null> {
+    const ratingWindow = await this.getCurrentRatingWindow(userId);
+    const min = rating - ratingWindow;
+    const max = rating + ratingWindow;
+    const candidates = await this.redis.zrangebyscore(
+      this.queueKey,
+      min,
+      max,
+      'LIMIT',
+      0,
+      10,
+    );
+
+    for (const opponentId of candidates) {
+      if (opponentId === userId) {
+        continue;
       }
 
-      const wasQueued = await this.redis.srem(this.queueMembersKey, opponentId);
-      if (wasQueued && opponentId !== userId) {
+      const removed = await this.redis.zrem(this.queueKey, opponentId);
+      if (removed > 0) {
         return opponentId;
       }
     }
@@ -154,23 +180,39 @@ export class MatchmakingService {
     return null;
   }
 
-  private async enqueueUser(userId: string) {
-    const added = await this.redis.sadd(this.queueMembersKey, userId);
-
+  private async enqueueUser(userId: string, rating: number) {
+    const added = await this.redis.zadd(this.queueKey, 'NX', rating, userId);
     if (added) {
-      await this.redis.rpush(this.queueKey, userId);
+      await this.redis.set(this.queueMetaKey(userId), String(Date.now()));
     }
   }
 
   private async isQueued(userId: string) {
-    return (await this.redis.sismember(this.queueMembersKey, userId)) === 1;
+    return (await this.redis.zscore(this.queueKey, userId)) !== null;
   }
 
   private async removeFromQueue(userId: string) {
-    const removed = await this.redis.srem(this.queueMembersKey, userId);
-    await this.redis.lrem(this.queueKey, 0, userId);
-
+    const removed = await this.redis.zrem(this.queueKey, userId);
+    if (removed > 0) {
+      await this.redis.del(this.queueMetaKey(userId));
+    }
     return removed > 0;
+  }
+
+  private async getCurrentRatingWindow(userId: string) {
+    const queuedAtRaw = await this.redis.get(this.queueMetaKey(userId));
+    if (!queuedAtRaw) {
+      return 0;
+    }
+
+    const elapsedMs = Math.max(Date.now() - Number(queuedAtRaw), 0);
+    return (
+      Math.floor(elapsedMs / this.ratingWindowStepMs) * this.ratingWindowStep
+    );
+  }
+
+  private queueMetaKey(userId: string) {
+    return `matchmaking:queue:meta:${userId}`;
   }
 
   private async setPendingMatch(userId: string, match: MatchmakingMatch) {
