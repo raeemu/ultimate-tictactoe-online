@@ -33,3 +33,10 @@ export function abandonMatch(token, matchId) {
     headers: authHeaders(token),
   });
 }
+
+export function acceptMatch(token, matchId) {
+  return apiRequest(`/matches/${matchId}/accept`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+}

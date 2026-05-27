@@ -22,6 +22,7 @@ type MatchmakingMatch = {
   activeBoard: number | null;
   createdAt: Date;
   startedAt: Date | null;
+  acceptedPlayerIds?: string[];
 };
 
 const matchmakingMatchSelect = {
@@ -67,7 +68,15 @@ export class MatchmakingService {
     if (pendingMatch) {
       return {
         status: 'MATCH_FOUND' as const,
-        match: pendingMatch,
+        match: await this.withAcceptedPlayers(pendingMatch),
+      };
+    }
+
+    const waitingMatch = await this.findWaitingMatch(userId);
+    if (waitingMatch) {
+      return {
+        status: 'MATCH_FOUND' as const,
+        match: await this.withAcceptedPlayers(waitingMatch),
       };
     }
 
@@ -93,7 +102,15 @@ export class MatchmakingService {
     if (pendingMatch) {
       return {
         status: 'MATCH_FOUND' as const,
-        match: pendingMatch,
+        match: await this.withAcceptedPlayers(pendingMatch),
+      };
+    }
+
+    const waitingMatch = await this.findWaitingMatch(userId);
+    if (waitingMatch) {
+      return {
+        status: 'MATCH_FOUND' as const,
+        match: await this.withAcceptedPlayers(waitingMatch),
       };
     }
 
@@ -136,14 +153,14 @@ export class MatchmakingService {
       const initial = createInitialState();
       const match = await this.prisma.match.create({
         data: {
-          status: MatchStatus.ACTIVE,
+          status: MatchStatus.WAITING,
           playerXId: waitingOpponent,
           playerOId: userId,
           currentTurn: initial.currentTurn,
           activeBoard: initial.activeBoard,
           boardState: initial.cells,
           macroboardState: initial.miniBoards,
-          startedAt: new Date(),
+          startedAt: null,
         },
         select: matchmakingMatchSelect,
       });
@@ -182,6 +199,28 @@ export class MatchmakingService {
       orderBy: { updatedAt: 'desc' },
       select: matchmakingMatchSelect,
     });
+  }
+
+  private async findWaitingMatch(userId: string) {
+    return this.prisma.match.findFirst({
+      where: {
+        status: MatchStatus.WAITING,
+        OR: [{ playerXId: userId }, { playerOId: userId }],
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: matchmakingMatchSelect,
+    });
+  }
+
+  private async withAcceptedPlayers(match: MatchmakingMatch) {
+    if (match.status !== MatchStatus.WAITING) {
+      return match;
+    }
+
+    return {
+      ...match,
+      acceptedPlayerIds: await this.redis.smembers(this.matchAcceptedKey(match.id)),
+    };
   }
 
   private async consumePendingMatch(
@@ -275,6 +314,10 @@ export class MatchmakingService {
 
   private pendingMatchKey(userId: string) {
     return `matchmaking:pending:${userId}`;
+  }
+
+  private matchAcceptedKey(matchId: string) {
+    return `match:accepted:${matchId}`;
   }
 
   private parsePendingMatch(rawMatch: string): MatchmakingMatch {

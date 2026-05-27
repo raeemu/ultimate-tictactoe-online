@@ -1,4 +1,5 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect } from "react";
 import { GameBoard } from "../features/matches/components/GameBoard";
 import { MatchResultBanner } from "../features/matches/components/MatchResultBanner";
 import {
@@ -33,11 +34,21 @@ export function GamePage() {
   );
   const canMove = Boolean(
     match &&
+    match.status === "ACTIVE" &&
     !isMatchOver &&
     status === "joined" &&
     moveStatus !== "sending" &&
     playerSymbol === match.currentTurn,
   );
+
+  useEffect(() => {
+    if (!matchmaking.shouldAutoOpenMatch || !matchmaking.match?.id) {
+      return;
+    }
+
+    matchmaking.clearAutoOpenMatch();
+    navigate(`/game/${matchmaking.match.id}`);
+  }, [matchmaking, navigate]);
 
   const goToLobby = () => {
     if (!match || match.status !== "ACTIVE") {

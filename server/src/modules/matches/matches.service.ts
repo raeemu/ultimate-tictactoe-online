@@ -46,6 +46,7 @@ const RATING_DELTA = 25;
 const MOVE_IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 const MOVE_PROCESSING_TTL_MS = 10000;
 const LEADERBOARD_CACHE_KEY = 'leaderboard:rating:top';
+const MATCH_ACCEPT_TTL_SECONDS = 10 * 60;
 
 @Injectable()
 export class MatchesService {
@@ -98,6 +99,18 @@ export class MatchesService {
       return this.getMatchSnapshotForUser(matchId, userId);
     }
 
+    if (match.status === MatchStatus.WAITING) {
+      return this.prisma.match.update({
+        where: { id: matchId },
+        data: {
+          status: MatchStatus.ABANDONED,
+          abandonedById: userId,
+          finishedAt: new Date(),
+        },
+        select: matchSnapshotSelect,
+      });
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const winnerId = this.resolveOpponentId(
         match.playerXId,
@@ -121,6 +134,66 @@ export class MatchesService {
 
       return updatedMatch;
     });
+  }
+
+  async acceptMatch(matchId: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      select: {
+        id: true,
+        status: true,
+        playerXId: true,
+        playerOId: true,
+      },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Match not found');
+    }
+
+    if (!this.isParticipant(match.playerXId, match.playerOId, userId)) {
+      throw new ForbiddenException('User is not a participant of this match');
+    }
+
+    if (match.status === MatchStatus.ACTIVE) {
+      return this.getMatchSnapshotForUser(matchId, userId);
+    }
+
+    if (match.status !== MatchStatus.WAITING) {
+      throw new BadRequestException('Match cannot be accepted');
+    }
+
+    const acceptedKey = this.matchAcceptedKey(matchId);
+    await this.redis.sadd(acceptedKey, userId);
+    await this.redis.expire(acceptedKey, MATCH_ACCEPT_TTL_SECONDS);
+
+    const acceptedCount = await this.redis.scard(acceptedKey);
+    if (acceptedCount < 2) {
+      return this.getMatchSnapshotWithAcceptedPlayers(matchId, userId);
+    }
+
+    const updatedMatch = await this.prisma.match.update({
+      where: { id: matchId },
+      data: {
+        status: MatchStatus.ACTIVE,
+        startedAt: new Date(),
+      },
+      select: matchSnapshotSelect,
+    });
+    await this.redis.del(acceptedKey);
+
+    return updatedMatch;
+  }
+
+  private async getMatchSnapshotWithAcceptedPlayers(
+    matchId: string,
+    userId: string,
+  ) {
+    const snapshot = await this.getMatchSnapshotForUser(matchId, userId);
+    return {
+      ...snapshot,
+      acceptedPlayerIds: await this.redis.smembers(this.matchAcceptedKey(matchId)),
+    };
   }
 
   async createMove(
@@ -458,6 +531,10 @@ export class MatchesService {
     clientMoveId: string,
   ) {
     return `move:idempotency:${matchId}:${userId}:${clientMoveId}`;
+  }
+
+  private matchAcceptedKey(matchId: string) {
+    return `match:accepted:${matchId}`;
   }
 
   private resolvePlayerSymbol(

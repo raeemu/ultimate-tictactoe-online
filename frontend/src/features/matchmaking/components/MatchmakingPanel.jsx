@@ -23,6 +23,8 @@ const statusHint = {
 export function MatchmakingPanel({ inviteFeatures, matchmaking, userId }) {
   const [inviteMode, setInviteMode] = useState(false);
   const {
+    acceptCurrentMatch,
+    acceptStatus,
     cancelSearch,
     error,
     isBusy,
@@ -35,7 +37,12 @@ export function MatchmakingPanel({ inviteFeatures, matchmaking, userId }) {
   } = matchmaking;
   const invites = inviteFeatures?.invites ?? [];
   const opponent = resolveOpponent(match, userId);
-  const isRecoveredMatch = lastResponseStatus === "ACTIVE_MATCH";
+  const isWaitingForAccept = match?.status === "WAITING";
+  const isAcceptedByMe = Boolean(
+    userId && match?.acceptedPlayerIds?.includes(userId),
+  );
+  const isRecoveredMatch =
+    lastResponseStatus === "ACTIVE_MATCH" && match?.status === "ACTIVE";
 
   if (match) {
     return (
@@ -59,10 +66,28 @@ export function MatchmakingPanel({ inviteFeatures, matchmaking, userId }) {
 
         {error ? <p className="error-text">{error}</p> : null}
 
-        <div className={isRecoveredMatch ? "panel-actions" : "panel-actions panel-actions-single"}>
-          <Link className="button-link" to={`/game/${match.id}`}>
-            {isRecoveredMatch ? "Переподключиться" : "Принять"}
-          </Link>
+        <div
+          className={
+            isRecoveredMatch ? "panel-actions" : "panel-actions panel-actions-single"
+          }
+        >
+          {isWaitingForAccept ? (
+            <button
+              type="button"
+              disabled={isBusy || isAcceptedByMe || acceptStatus === "waiting"}
+              onClick={acceptCurrentMatch}
+            >
+              {isAcceptedByMe || acceptStatus === "waiting"
+                ? "Ожидаем соперника"
+                : acceptStatus === "accepting"
+                  ? "Принимаем..."
+                  : "Принять"}
+            </button>
+          ) : (
+            <Link className="button-link" to={`/game/${match.id}`}>
+              {isRecoveredMatch ? "Переподключиться" : "Начать игру"}
+            </Link>
+          )}
           {isRecoveredMatch ? (
             <button
               type="button"

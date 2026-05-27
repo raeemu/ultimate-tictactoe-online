@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   abandonMatch,
+  acceptMatch,
   getQueueStatus,
   joinQueue,
   leaveQueue,
@@ -12,6 +13,8 @@ const initialState = {
   error: "",
   lastResponseStatus: "",
   match: null,
+  acceptStatus: "idle",
+  shouldAutoOpenMatch: false,
   status: "idle",
 };
 
@@ -21,6 +24,8 @@ function mapQueueResponse(data) {
       error: "",
       lastResponseStatus: data.status,
       match: data.match,
+      acceptStatus: "idle",
+      shouldAutoOpenMatch: false,
       status: "matched",
     };
   }
@@ -30,6 +35,8 @@ function mapQueueResponse(data) {
       error: "",
       lastResponseStatus: data.status,
       match: null,
+      acceptStatus: "idle",
+      shouldAutoOpenMatch: false,
       status: "searching",
     };
   }
@@ -38,6 +45,8 @@ function mapQueueResponse(data) {
     error: "",
     lastResponseStatus: data.status,
     match: null,
+    acceptStatus: "idle",
+    shouldAutoOpenMatch: false,
     status: "idle",
   };
 }
@@ -59,6 +68,8 @@ export function useMatchmaking(token) {
         error: err.message,
         lastResponseStatus: "",
         match: null,
+        acceptStatus: "idle",
+        shouldAutoOpenMatch: false,
         status: "error",
       });
     }
@@ -69,7 +80,11 @@ export function useMatchmaking(token) {
   }, [refreshStatus]);
 
   useEffect(() => {
-    if (!token || state.status !== "searching") {
+    const shouldPoll =
+      state.status === "searching" ||
+      (state.status === "matched" && state.match?.status === "WAITING");
+
+    if (!token || !shouldPoll) {
       return undefined;
     }
 
@@ -77,24 +92,43 @@ export function useMatchmaking(token) {
       try {
         const data = await getQueueStatus(token);
         setState((current) => {
-          if (current.status !== "searching") {
+          const shouldUpdate =
+            current.status === "searching" ||
+            (current.status === "matched" && current.match?.status === "WAITING");
+
+          if (!shouldUpdate) {
             return current;
           }
 
-          return mapQueueResponse(data);
+          const next = mapQueueResponse(data);
+          if (
+            current.match?.id === next.match?.id &&
+            current.lastResponseStatus === "MATCH_FOUND" &&
+            next.lastResponseStatus === "ACTIVE_MATCH"
+          ) {
+            return {
+              ...next,
+              lastResponseStatus: "MATCH_FOUND",
+              shouldAutoOpenMatch: current.acceptStatus === "waiting",
+            };
+          }
+
+          return next;
         });
       } catch (err) {
         setState({
           error: err.message,
           lastResponseStatus: "",
           match: null,
+          acceptStatus: "idle",
+          shouldAutoOpenMatch: false,
           status: "error",
         });
       }
     }, POLL_INTERVAL_MS);
 
     return () => window.clearInterval(intervalId);
-  }, [state.status, token]);
+  }, [state.match?.status, state.status, token]);
 
   const startSearch = useCallback(async () => {
     if (!token) {
@@ -117,6 +151,8 @@ export function useMatchmaking(token) {
         error: err.message,
         lastResponseStatus: "",
         match: null,
+        acceptStatus: "idle",
+        shouldAutoOpenMatch: false,
         status: "error",
       });
     }
@@ -140,6 +176,8 @@ export function useMatchmaking(token) {
         error: "",
         lastResponseStatus: data.status,
         match: null,
+        acceptStatus: "idle",
+        shouldAutoOpenMatch: false,
         status: "idle",
       });
     } catch (err) {
@@ -179,6 +217,8 @@ export function useMatchmaking(token) {
         error: "",
         lastResponseStatus: "MATCH_ABANDONED",
         match: null,
+        acceptStatus: "idle",
+        shouldAutoOpenMatch: false,
         status: "idle",
       });
     } catch (err) {
@@ -190,16 +230,71 @@ export function useMatchmaking(token) {
     }
   }, [state.match?.id, token]);
 
+  const acceptCurrentMatch = useCallback(async () => {
+    if (!token || !state.match?.id) {
+      setState((current) => ({
+        ...current,
+        error: "Нет найденного матча",
+      }));
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      acceptStatus: "accepting",
+      error: "",
+    }));
+
+    try {
+      const match = await acceptMatch(token, state.match.id);
+      setState((current) => ({
+        ...current,
+        acceptStatus: match.status === "ACTIVE" ? "accepted" : "waiting",
+        error: "",
+        lastResponseStatus:
+          current.lastResponseStatus === "ACTIVE_MATCH"
+            ? "MATCH_FOUND"
+            : current.lastResponseStatus,
+        match,
+        shouldAutoOpenMatch: match.status === "ACTIVE",
+        status: "matched",
+      }));
+    } catch (err) {
+      setState((current) => ({
+        ...current,
+        acceptStatus: "error",
+        error: err.message,
+      }));
+    }
+  }, [state.match?.id, token]);
+
   return useMemo(
     () => ({
       ...state,
+      acceptCurrentMatch,
       cancelSearch,
-      isBusy: state.status === "joining" || state.status === "leaving",
+      isBusy:
+        state.status === "joining" ||
+        state.status === "leaving" ||
+        state.acceptStatus === "accepting",
       isSearching: state.status === "searching" || state.status === "joining",
       leaveCurrentMatch,
       refreshStatus,
+      clearAutoOpenMatch: () => {
+        setState((current) => ({
+          ...current,
+          shouldAutoOpenMatch: false,
+        }));
+      },
       startSearch,
     }),
-    [cancelSearch, leaveCurrentMatch, refreshStatus, startSearch, state],
+    [
+      acceptCurrentMatch,
+      cancelSearch,
+      leaveCurrentMatch,
+      refreshStatus,
+      startSearch,
+      state,
+    ],
   );
 }

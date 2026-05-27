@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { MatchmakingPanel } from "../features/matchmaking/components/MatchmakingPanel";
 import { useMatchmaking } from "../features/matchmaking/hooks/useMatchmaking";
 import { useAuth } from "../features/auth/components/AuthProvider";
@@ -7,9 +8,19 @@ import { useLobbyRedisFeatures } from "../features/lobby/useLobbyRedisFeatures";
 import { abandonMatch } from "../features/matchmaking/api/matchmakingApi";
 
 export function LobbyPage() {
+  const navigate = useNavigate();
   const { logout, token, user } = useAuth();
   const matchmaking = useMatchmaking(token);
   const redisFeatures = useLobbyRedisFeatures(token);
+
+  useEffect(() => {
+    if (!matchmaking.shouldAutoOpenMatch || !matchmaking.match?.id) {
+      return;
+    }
+
+    matchmaking.clearAutoOpenMatch();
+    navigate(`/game/${matchmaking.match.id}`);
+  }, [matchmaking, navigate]);
 
   const handleLogout = async () => {
     if (!matchmaking.match?.id) {

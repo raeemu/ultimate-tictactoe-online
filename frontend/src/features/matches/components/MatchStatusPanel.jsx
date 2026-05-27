@@ -7,7 +7,7 @@ const connectionText = {
 };
 
 const matchStatusText = {
-  WAITING: "Ожидаем второго игрока",
+  WAITING: "Ожидаем принятия матча",
   ACTIVE: "Партия идет",
   FINISHED: "Партия завершена",
   ABANDONED: "Партия покинута",
@@ -125,6 +125,10 @@ function getTurnLabel(match, isMyTurn) {
 
   if (match.status === "ABANDONED") {
     return "Один из игроков покинул матч";
+  }
+
+  if (match.status === "WAITING") {
+    return "Матч начнется после принятия обоими игроками";
   }
 
   if (match.status === "FINISHED") {

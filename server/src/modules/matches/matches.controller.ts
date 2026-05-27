@@ -31,4 +31,12 @@ export class MatchesController {
   ) {
     return this.matchesService.abandonMatch(matchId, req.user.id);
   }
+
+  @Post(':matchId/accept')
+  acceptMatch(
+    @Param('matchId') matchId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.matchesService.acceptMatch(matchId, req.user.id);
+  }
 }

@@ -228,7 +228,9 @@ export class InvitesService {
   private async hasActiveMatch(userId: string) {
     const match = await this.prisma.match.findFirst({
       where: {
-        status: MatchStatus.ACTIVE,
+        status: {
+          in: [MatchStatus.ACTIVE, MatchStatus.WAITING],
+        },
         OR: [{ playerXId: userId }, { playerOId: userId }],
       },
       select: { id: true },

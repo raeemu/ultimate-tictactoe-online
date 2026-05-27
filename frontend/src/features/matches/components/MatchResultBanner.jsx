@@ -10,6 +10,10 @@ export function MatchResultBanner({ match, matchmaking, playerId }) {
     matchmaking.match?.id && matchmaking.match.id !== match.id
       ? matchmaking.match
       : null;
+  const isNextMatchWaiting = nextMatch?.status === "WAITING";
+  const isNextMatchAccepted = Boolean(
+    playerId && nextMatch?.acceptedPlayerIds?.includes(playerId),
+  );
 
   return (
     <section className={`panel result-banner result-${result.tone}`}>
@@ -21,10 +25,27 @@ export function MatchResultBanner({ match, matchmaking, playerId }) {
       </div>
 
       <div className="result-actions">
-        {nextMatch ? (
+        {nextMatch && !isNextMatchWaiting ? (
           <Link className="button-link" to={`/game/${nextMatch.id}`}>
             Перейти к новой игре
           </Link>
+        ) : isNextMatchWaiting ? (
+          <button
+            className="button-link"
+            disabled={
+              matchmaking.isBusy ||
+              isNextMatchAccepted ||
+              matchmaking.acceptStatus === "waiting"
+            }
+            onClick={matchmaking.acceptCurrentMatch}
+            type="button"
+          >
+            {isNextMatchAccepted || matchmaking.acceptStatus === "waiting"
+              ? "Ожидаем соперника"
+              : matchmaking.acceptStatus === "accepting"
+                ? "Принимаем..."
+                : "Принять новую игру"}
+          </button>
         ) : (
           <button
             className="button-link"
