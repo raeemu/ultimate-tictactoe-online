@@ -142,6 +142,19 @@ button {
   color: #ffffff;
   background: var(--primary);
   cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+button:not(:disabled):not(.game-cell):hover {
+  border-color: #0d5f59;
+  background: #0d5f59;
+  box-shadow: 0 8px 18px rgb(15 118 110 / 18%);
+  transform: translateY(-1px);
 }
 
 button.secondary {
@@ -149,12 +162,18 @@ button.secondary {
   background: #ffffff;
 }
 
+button.secondary:not(:disabled):hover {
+  border-color: #0d5f59;
+  color: #0d5f59;
+  background: #ecfeff;
+}
+
 button.danger-action {
   border-color: #fecaca;
   color: #b91c1c;
 }
 
-button.danger-action:hover {
+button.danger-action:not(:disabled):hover {
   border-color: #ef4444;
   color: #ffffff;
   background: #dc2626;
@@ -173,11 +192,30 @@ button:disabled {
   color: #ffffff;
   background: var(--primary);
   text-decoration: none;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.button-link:hover {
+  border-color: #0d5f59;
+  background: #0d5f59;
+  box-shadow: 0 8px 18px rgb(15 118 110 / 18%);
+  transform: translateY(-1px);
 }
 
 .button-link-secondary {
   color: var(--primary);
   background: #ffffff;
+}
+
+.button-link-secondary:hover {
+  border-color: #0d5f59;
+  color: #0d5f59;
+  background: #ecfeff;
 }
 
 .lobby-layout {
