@@ -20,25 +20,70 @@ const statusHint = {
   error: "Попробуйте еще раз или проверьте подключение к серверу.",
 };
 
-export function MatchmakingPanel({ inviteFeatures, matchmaking }) {
+export function MatchmakingPanel({ inviteFeatures, matchmaking, userId }) {
   const [inviteMode, setInviteMode] = useState(false);
   const {
     cancelSearch,
     error,
     isBusy,
     isSearching,
+    leaveCurrentMatch,
+    lastResponseStatus,
     match,
     startSearch,
     status,
   } = matchmaking;
   const invites = inviteFeatures?.invites ?? [];
+  const opponent = resolveOpponent(match, userId);
+  const isRecoveredMatch = lastResponseStatus === "ACTIVE_MATCH";
+
+  if (match) {
+    return (
+      <section className="panel current-match-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">
+              {isRecoveredMatch ? "Текущий матч" : "Матч найден"}
+            </p>
+            <h2>{isRecoveredMatch ? "Игра активна" : "Соперник найден"}</h2>
+          </div>
+          <span className="status-pill status-matched">Матч найден</span>
+        </div>
+
+        <dl className="current-match-table">
+          <div>
+            <dt>Ваш соперник</dt>
+            <dd>{opponent?.username ?? "Соперник"}</dd>
+          </div>
+        </dl>
+
+        {error ? <p className="error-text">{error}</p> : null}
+
+        <div className={isRecoveredMatch ? "panel-actions" : "panel-actions panel-actions-single"}>
+          <Link className="button-link" to={`/game/${match.id}`}>
+            {isRecoveredMatch ? "Переподключиться" : "Принять"}
+          </Link>
+          {isRecoveredMatch ? (
+            <button
+              type="button"
+              className="secondary danger-action"
+              disabled={isBusy}
+              onClick={leaveCurrentMatch}
+            >
+              Покинуть
+            </button>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="panel matchmaking-panel">
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Быстрая игра</p>
-          <h2>Найти соперника</h2>
+          <p className="eyebrow">Поиск матча</p>
+          <h2>Подбор соперника</h2>
         </div>
         <span className={`status-pill status-${status}`}>
           {statusText[status]}
@@ -54,17 +99,6 @@ export function MatchmakingPanel({ inviteFeatures, matchmaking }) {
         <span className={`queue-dot status-${status}`} />
         <p>{statusHint[status]}</p>
       </div>
-
-      {match ? (
-        <div className="match-summary">
-          <p className="eyebrow">Матч готов</p>
-          <strong>{match.id}</strong>
-          <p>Соперник найден. Можно переходить к игровому экрану.</p>
-          <Link className="button-link" to={`/game/${match.id}`}>
-            Перейти к игре
-          </Link>
-        </div>
-      ) : null}
 
       {error ? <p className="error-text">{error}</p> : null}
 
@@ -112,7 +146,7 @@ export function MatchmakingPanel({ inviteFeatures, matchmaking }) {
               <strong>
                 {inviteFeatures.sentInvite.status === "declined"
                   ? `${inviteFeatures.sentInvite.username} отклонил приглашение`
-                  : `Ожидаем ответа ${inviteFeatures.sentInvite.username}`}
+                  : `Ожидаем ответ ${inviteFeatures.sentInvite.username}`}
               </strong>
             </div>
             {inviteFeatures.sentInvite.status === "pending" ? (
@@ -189,4 +223,20 @@ export function MatchmakingPanel({ inviteFeatures, matchmaking }) {
       ) : null}
     </section>
   );
+}
+
+function resolveOpponent(match, userId) {
+  if (!match || !userId) {
+    return null;
+  }
+
+  if (match.playerXId === userId) {
+    return match.playerO ?? null;
+  }
+
+  if (match.playerOId === userId) {
+    return match.playerX ?? null;
+  }
+
+  return null;
 }

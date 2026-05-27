@@ -23,4 +23,12 @@ export class MatchesController {
   ) {
     return this.matchesService.createMove(matchId, req.user.id, dto);
   }
+
+  @Post(':matchId/abandon')
+  abandonMatch(
+    @Param('matchId') matchId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.matchesService.abandonMatch(matchId, req.user.id);
+  }
 }

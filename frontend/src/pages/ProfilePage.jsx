@@ -1,5 +1,6 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../features/auth/components/AuthProvider";
+import { abandonMatch } from "../features/matchmaking/api/matchmakingApi";
 import { useProfile } from "../features/profile/hooks/useProfile";
 
 const resultText = {
@@ -41,6 +42,28 @@ export function ProfilePage() {
   }
 
   const { history, recentMatches, stats, user } = data;
+  const activeMatch = recentMatches.find((match) => match.status === "ACTIVE");
+
+  const handleLogout = async () => {
+    if (!activeMatch?.id) {
+      logout();
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "У вас есть активный матч. Покинуть его и выйти из профиля?",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await abandonMatch(token, activeMatch.id);
+      logout();
+    } catch (err) {
+      window.alert(err.message);
+    }
+  };
 
   return (
     <main className="app-page">
@@ -59,7 +82,7 @@ export function ProfilePage() {
 
           <div className="profile-actions">
             <Link className="button-link button-link-secondary" to="/lobby">Лобби</Link>
-            <button type="button" className="secondary" onClick={logout}>Выйти</button>
+            <button type="button" className="secondary" onClick={handleLogout}>Выйти</button>
           </div>
         </header>
 

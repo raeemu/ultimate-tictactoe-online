@@ -23,6 +23,7 @@ export function MatchStatusPanel({
   playerId,
 }) {
   const playerSymbol = resolvePlayerSymbol(match, playerId);
+  const opponent = resolveOpponent(match, playerId);
   const isMyTurn = Boolean(
     playerSymbol &&
     match?.currentTurn === playerSymbol &&
@@ -63,6 +64,10 @@ export function MatchStatusPanel({
 
           <dl className="match-facts">
             <div>
+              <dt>Ваш соперник</dt>
+              <dd>{opponent?.username ?? "Соперник"}</dd>
+            </div>
+            <div>
               <dt>Ваш знак</dt>
               <dd>{playerSymbol ?? "-"}</dd>
             </div>
@@ -92,6 +97,22 @@ export function resolvePlayerSymbol(match, playerId) {
 
   if (match.playerOId === playerId) {
     return "O";
+  }
+
+  return null;
+}
+
+function resolveOpponent(match, playerId) {
+  if (!match || !playerId) {
+    return null;
+  }
+
+  if (match.playerXId === playerId) {
+    return match.playerO ?? null;
+  }
+
+  if (match.playerOId === playerId) {
+    return match.playerX ?? null;
   }
 
   return null;

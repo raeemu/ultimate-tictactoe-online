@@ -4,11 +4,33 @@ import { useMatchmaking } from "../features/matchmaking/hooks/useMatchmaking";
 import { useAuth } from "../features/auth/components/AuthProvider";
 import { LobbyRedisPanel } from "../features/lobby/LobbyRedisPanel";
 import { useLobbyRedisFeatures } from "../features/lobby/useLobbyRedisFeatures";
+import { abandonMatch } from "../features/matchmaking/api/matchmakingApi";
 
 export function LobbyPage() {
   const { logout, token, user } = useAuth();
   const matchmaking = useMatchmaking(token);
   const redisFeatures = useLobbyRedisFeatures(token);
+
+  const handleLogout = async () => {
+    if (!matchmaking.match?.id) {
+      logout();
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "У вас есть активный матч. Покинуть его и выйти из профиля?",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await abandonMatch(token, matchmaking.match.id);
+      logout();
+    } catch (err) {
+      window.alert(err.message);
+    }
+  };
 
   return (
     <main className="app-page">
@@ -30,7 +52,7 @@ export function LobbyPage() {
             <Link className="button-link button-link-secondary" to="/profile">
               Профиль
             </Link>
-            <button type="button" className="secondary" onClick={logout}>
+            <button type="button" className="secondary" onClick={handleLogout}>
               Выйти
             </button>
           </div>
@@ -39,6 +61,7 @@ export function LobbyPage() {
         <MatchmakingPanel
           inviteFeatures={redisFeatures}
           matchmaking={matchmaking}
+          userId={user?.id}
         />
         <LobbyRedisPanel features={redisFeatures} />
       </section>

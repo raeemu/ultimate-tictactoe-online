@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getQueueStatus, joinQueue, leaveQueue } from "../api/matchmakingApi";
+import {
+  abandonMatch,
+  getQueueStatus,
+  joinQueue,
+  leaveQueue,
+} from "../api/matchmakingApi";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -11,7 +16,7 @@ const initialState = {
 };
 
 function mapQueueResponse(data) {
-  if (data.status === "MATCH_FOUND") {
+  if (data.status === "MATCH_FOUND" || data.status === "ACTIVE_MATCH") {
     return {
       error: "",
       lastResponseStatus: data.status,
@@ -39,6 +44,29 @@ function mapQueueResponse(data) {
 
 export function useMatchmaking(token) {
   const [state, setState] = useState(initialState);
+
+  const refreshStatus = useCallback(async () => {
+    if (!token) {
+      setState(initialState);
+      return;
+    }
+
+    try {
+      const data = await getQueueStatus(token);
+      setState(mapQueueResponse(data));
+    } catch (err) {
+      setState({
+        error: err.message,
+        lastResponseStatus: "",
+        match: null,
+        status: "error",
+      });
+    }
+  }, [token]);
+
+  useEffect(() => {
+    refreshStatus();
+  }, [refreshStatus]);
 
   useEffect(() => {
     if (!token || state.status !== "searching") {
@@ -123,14 +151,55 @@ export function useMatchmaking(token) {
     }
   }, [token]);
 
+  const leaveCurrentMatch = useCallback(async () => {
+    if (!token || !state.match?.id) {
+      setState((current) => ({
+        ...current,
+        error: "Нет активного матча",
+      }));
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Покинуть текущий матч? Это будет засчитано как поражение.",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      error: "",
+      status: "leaving",
+    }));
+
+    try {
+      await abandonMatch(token, state.match.id);
+      setState({
+        error: "",
+        lastResponseStatus: "MATCH_ABANDONED",
+        match: null,
+        status: "idle",
+      });
+    } catch (err) {
+      setState((current) => ({
+        ...current,
+        error: err.message,
+        status: "matched",
+      }));
+    }
+  }, [state.match?.id, token]);
+
   return useMemo(
     () => ({
       ...state,
       cancelSearch,
       isBusy: state.status === "joining" || state.status === "leaving",
       isSearching: state.status === "searching" || state.status === "joining",
+      leaveCurrentMatch,
+      refreshStatus,
       startSearch,
     }),
-    [cancelSearch, startSearch, state],
+    [cancelSearch, leaveCurrentMatch, refreshStatus, startSearch, state],
   );
 }

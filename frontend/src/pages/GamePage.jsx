@@ -66,7 +66,14 @@ export function GamePage() {
             </p>
           </div>
           <div className="game-header-actions">
-            <Link className="button-link button-link-secondary" to="/rules">
+            <Link
+              className="button-link button-link-secondary"
+              to={
+                match?.status === "ACTIVE" && matchId
+                  ? `/rules?matchId=${matchId}`
+                  : "/rules"
+              }
+            >
               Правила
             </Link>
             <button

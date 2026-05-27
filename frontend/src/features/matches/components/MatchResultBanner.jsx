@@ -6,6 +6,10 @@ export function MatchResultBanner({ match, matchmaking, playerId }) {
   }
 
   const result = getMatchResult(match, playerId);
+  const nextMatch =
+    matchmaking.match?.id && matchmaking.match.id !== match.id
+      ? matchmaking.match
+      : null;
 
   return (
     <section className={`panel result-banner result-${result.tone}`}>
@@ -17,8 +21,8 @@ export function MatchResultBanner({ match, matchmaking, playerId }) {
       </div>
 
       <div className="result-actions">
-        {matchmaking.match ? (
-          <Link className="button-link" to={`/game/${matchmaking.match.id}`}>
+        {nextMatch ? (
+          <Link className="button-link" to={`/game/${nextMatch.id}`}>
             Перейти к новой игре
           </Link>
         ) : (

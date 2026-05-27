@@ -26,3 +26,10 @@ export function leaveQueue(token) {
     headers: authHeaders(token),
   });
 }
+
+export function abandonMatch(token, matchId) {
+  return apiRequest(`/matches/${matchId}/abandon`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+}

@@ -10,11 +10,42 @@ type MatchmakingMatch = {
   status: MatchStatus;
   playerXId: string;
   playerOId: string | null;
+  playerX?: {
+    id: string;
+    username: string;
+  };
+  playerO?: {
+    id: string;
+    username: string;
+  } | null;
   currentTurn: string;
   activeBoard: number | null;
   createdAt: Date;
   startedAt: Date | null;
 };
+
+const matchmakingMatchSelect = {
+  id: true,
+  status: true,
+  playerXId: true,
+  playerOId: true,
+  playerX: {
+    select: {
+      id: true,
+      username: true,
+    },
+  },
+  playerO: {
+    select: {
+      id: true,
+      username: true,
+    },
+  },
+  currentTurn: true,
+  activeBoard: true,
+  createdAt: true,
+  startedAt: true,
+} as const;
 
 @Injectable()
 export class MatchmakingService {
@@ -40,6 +71,14 @@ export class MatchmakingService {
       };
     }
 
+    const activeMatch = await this.findActiveMatch(userId);
+    if (activeMatch) {
+      return {
+        status: 'ACTIVE_MATCH' as const,
+        match: activeMatch,
+      };
+    }
+
     if (await this.isQueued(userId)) {
       return this.joinQueue(userId);
     }
@@ -55,6 +94,14 @@ export class MatchmakingService {
       return {
         status: 'MATCH_FOUND' as const,
         match: pendingMatch,
+      };
+    }
+
+    const activeMatch = await this.findActiveMatch(userId);
+    if (activeMatch) {
+      return {
+        status: 'ACTIVE_MATCH' as const,
+        match: activeMatch,
       };
     }
 
@@ -98,16 +145,7 @@ export class MatchmakingService {
           macroboardState: initial.miniBoards,
           startedAt: new Date(),
         },
-        select: {
-          id: true,
-          status: true,
-          playerXId: true,
-          playerOId: true,
-          currentTurn: true,
-          activeBoard: true,
-          createdAt: true,
-          startedAt: true,
-        },
+        select: matchmakingMatchSelect,
       });
 
       await this.setPendingMatch(waitingOpponent, match);
@@ -133,6 +171,17 @@ export class MatchmakingService {
 
   private get redis() {
     return this.redisService.client;
+  }
+
+  private async findActiveMatch(userId: string) {
+    return this.prisma.match.findFirst({
+      where: {
+        status: MatchStatus.ACTIVE,
+        OR: [{ playerXId: userId }, { playerOId: userId }],
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: matchmakingMatchSelect,
+    });
   }
 
   private async consumePendingMatch(

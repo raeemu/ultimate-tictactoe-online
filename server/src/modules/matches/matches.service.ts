@@ -20,6 +20,18 @@ const matchSnapshotSelect = {
   status: true,
   playerXId: true,
   playerOId: true,
+  playerX: {
+    select: {
+      id: true,
+      username: true,
+    },
+  },
+  playerO: {
+    select: {
+      id: true,
+      username: true,
+    },
+  },
   currentTurn: true,
   activeBoard: true,
   boardState: true,

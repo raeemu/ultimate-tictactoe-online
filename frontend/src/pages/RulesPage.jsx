@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../features/auth/components/AuthProvider";
 
 const guideCells = Array.from({ length: 9 }, (_, index) => index);
@@ -42,8 +42,10 @@ function MacroBoardGuide({ targetIndex }) {
 
 export function RulesPage() {
   const { isAuthenticated } = useAuth();
-  const backLink = isAuthenticated ? "/lobby" : "/auth";
-  const backText = isAuthenticated ? "В лобби" : "К входу";
+  const [searchParams] = useSearchParams();
+  const matchId = searchParams.get("matchId");
+  const backLink = matchId && isAuthenticated ? `/game/${matchId}` : isAuthenticated ? "/lobby" : "/auth";
+  const backText = matchId && isAuthenticated ? "Назад к игре" : isAuthenticated ? "В лобби" : "К входу";
 
   return (
     <main className="app-page">

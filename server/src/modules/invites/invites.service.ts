@@ -67,6 +67,14 @@ export class InvitesService {
       throw new BadRequestException('Cannot invite yourself');
     }
 
+    if (await this.hasActiveMatch(fromUser.id)) {
+      throw new BadRequestException('Finish your current match first');
+    }
+
+    if (await this.hasActiveMatch(toUser.id)) {
+      throw new BadRequestException('Invited user is already in a match');
+    }
+
     const invite: InvitePayload = {
       id: randomUUID(),
       fromUserId: fromUser.id,
@@ -117,6 +125,16 @@ export class InvitesService {
     const invite = await this.getInvite(inviteId);
     if (invite.toUserId !== userId) {
       throw new ForbiddenException('Invite belongs to another user');
+    }
+
+    if (await this.hasActiveMatch(invite.fromUserId)) {
+      await this.deleteInvite(invite);
+      throw new BadRequestException('Inviting user is already in a match');
+    }
+
+    if (await this.hasActiveMatch(invite.toUserId)) {
+      await this.deleteInvite(invite);
+      throw new BadRequestException('Finish your current match first');
     }
 
     const initial = createInitialState();
@@ -205,6 +223,18 @@ export class InvitesService {
       this.redis.del(this.inviteKey(invite.id)),
       this.redis.srem(this.userInvitesKey(invite.toUserId), invite.id),
     ]);
+  }
+
+  private async hasActiveMatch(userId: string) {
+    const match = await this.prisma.match.findFirst({
+      where: {
+        status: MatchStatus.ACTIVE,
+        OR: [{ playerXId: userId }, { playerOId: userId }],
+      },
+      select: { id: true },
+    });
+
+    return Boolean(match);
   }
 
   private async setAcceptedInvite(
