@@ -31,19 +31,27 @@ function mapQueueResponse(data) {
   }
 
   if (data.status === "SEARCHING") {
-    return {
-      error: "",
-      lastResponseStatus: data.status,
-      match: null,
-      acceptStatus: "idle",
-      shouldAutoOpenMatch: false,
-      status: "searching",
-    };
+    return { ...idleResponseState(data.status), status: "searching" };
   }
 
+  return idleResponseState(data.status);
+}
+
+function errorState(message) {
+  return {
+    error: message,
+    lastResponseStatus: "",
+    match: null,
+    acceptStatus: "idle",
+    shouldAutoOpenMatch: false,
+    status: "error",
+  };
+}
+
+function idleResponseState(lastResponseStatus) {
   return {
     error: "",
-    lastResponseStatus: data.status,
+    lastResponseStatus,
     match: null,
     acceptStatus: "idle",
     shouldAutoOpenMatch: false,
@@ -51,9 +59,30 @@ function mapQueueResponse(data) {
   };
 }
 
-export function useMatchmaking(token) {
-  const [state, setState] = useState(initialState);
+function shouldPollQueue(state) {
+  return (
+    state.status === "searching" ||
+    (state.status === "matched" && state.match?.status === "WAITING")
+  );
+}
 
+function preserveFoundStatus(current, next) {
+  if (
+    current.match?.id === next.match?.id &&
+    current.lastResponseStatus === "MATCH_FOUND" &&
+    next.lastResponseStatus === "ACTIVE_MATCH"
+  ) {
+    return {
+      ...next,
+      lastResponseStatus: "MATCH_FOUND",
+      shouldAutoOpenMatch: current.acceptStatus === "waiting",
+    };
+  }
+
+  return next;
+}
+
+function useQueueStatus(token, state, setState) {
   const refreshStatus = useCallback(async () => {
     if (!token) {
       setState(initialState);
@@ -64,72 +93,39 @@ export function useMatchmaking(token) {
       const data = await getQueueStatus(token);
       setState(mapQueueResponse(data));
     } catch (err) {
-      setState({
-        error: err.message,
-        lastResponseStatus: "",
-        match: null,
-        acceptStatus: "idle",
-        shouldAutoOpenMatch: false,
-        status: "error",
-      });
+      setState(errorState(err.message));
     }
-  }, [token]);
+  }, [setState, token]);
 
   useEffect(() => {
     refreshStatus();
   }, [refreshStatus]);
 
   useEffect(() => {
-    const shouldPoll =
-      state.status === "searching" ||
-      (state.status === "matched" && state.match?.status === "WAITING");
-
-    if (!token || !shouldPoll) {
+    if (!token || !shouldPollQueue(state)) {
       return undefined;
     }
 
     const intervalId = window.setInterval(async () => {
       try {
         const data = await getQueueStatus(token);
-        setState((current) => {
-          const shouldUpdate =
-            current.status === "searching" ||
-            (current.status === "matched" && current.match?.status === "WAITING");
-
-          if (!shouldUpdate) {
-            return current;
-          }
-
-          const next = mapQueueResponse(data);
-          if (
-            current.match?.id === next.match?.id &&
-            current.lastResponseStatus === "MATCH_FOUND" &&
-            next.lastResponseStatus === "ACTIVE_MATCH"
-          ) {
-            return {
-              ...next,
-              lastResponseStatus: "MATCH_FOUND",
-              shouldAutoOpenMatch: current.acceptStatus === "waiting",
-            };
-          }
-
-          return next;
-        });
+        setState((current) =>
+          shouldPollQueue(current)
+            ? preserveFoundStatus(current, mapQueueResponse(data))
+            : current,
+        );
       } catch (err) {
-        setState({
-          error: err.message,
-          lastResponseStatus: "",
-          match: null,
-          acceptStatus: "idle",
-          shouldAutoOpenMatch: false,
-          status: "error",
-        });
+        setState(errorState(err.message));
       }
     }, POLL_INTERVAL_MS);
 
     return () => window.clearInterval(intervalId);
-  }, [state.match?.status, state.status, token]);
+  }, [setState, state, token]);
 
+  return refreshStatus;
+}
+
+function useQueueActions(token, setState) {
   const startSearch = useCallback(async () => {
     if (!token) {
       setState({ ...initialState, error: "Нет активной сессии" });
@@ -147,16 +143,9 @@ export function useMatchmaking(token) {
       const data = await joinQueue(token);
       setState(mapQueueResponse(data));
     } catch (err) {
-      setState({
-        error: err.message,
-        lastResponseStatus: "",
-        match: null,
-        acceptStatus: "idle",
-        shouldAutoOpenMatch: false,
-        status: "error",
-      });
+      setState(errorState(err.message));
     }
-  }, [token]);
+  }, [setState, token]);
 
   const cancelSearch = useCallback(async () => {
     if (!token) {
@@ -164,22 +153,11 @@ export function useMatchmaking(token) {
       return;
     }
 
-    setState((current) => ({
-      ...current,
-      error: "",
-      status: "leaving",
-    }));
+    setState((current) => ({ ...current, error: "", status: "leaving" }));
 
     try {
       const data = await leaveQueue(token);
-      setState({
-        error: "",
-        lastResponseStatus: data.status,
-        match: null,
-        acceptStatus: "idle",
-        shouldAutoOpenMatch: false,
-        status: "idle",
-      });
+      setState(idleResponseState(data.status));
     } catch (err) {
       setState((current) => ({
         ...current,
@@ -187,10 +165,14 @@ export function useMatchmaking(token) {
         status: "error",
       }));
     }
-  }, [token]);
+  }, [setState, token]);
 
+  return { cancelSearch, startSearch };
+}
+
+function useCurrentMatchActions(token, matchId, setState) {
   const leaveCurrentMatch = useCallback(async () => {
-    if (!token || !state.match?.id) {
+    if (!token || !matchId) {
       setState((current) => ({
         ...current,
         error: "Нет активного матча",
@@ -205,22 +187,11 @@ export function useMatchmaking(token) {
       return;
     }
 
-    setState((current) => ({
-      ...current,
-      error: "",
-      status: "leaving",
-    }));
+    setState((current) => ({ ...current, error: "", status: "leaving" }));
 
     try {
-      await abandonMatch(token, state.match.id);
-      setState({
-        error: "",
-        lastResponseStatus: "MATCH_ABANDONED",
-        match: null,
-        acceptStatus: "idle",
-        shouldAutoOpenMatch: false,
-        status: "idle",
-      });
+      await abandonMatch(token, matchId);
+      setState(idleResponseState("MATCH_ABANDONED"));
     } catch (err) {
       setState((current) => ({
         ...current,
@@ -228,10 +199,10 @@ export function useMatchmaking(token) {
         status: "matched",
       }));
     }
-  }, [state.match?.id, token]);
+  }, [matchId, setState, token]);
 
   const acceptCurrentMatch = useCallback(async () => {
-    if (!token || !state.match?.id) {
+    if (!token || !matchId) {
       setState((current) => ({
         ...current,
         error: "Нет найденного матча",
@@ -246,7 +217,7 @@ export function useMatchmaking(token) {
     }));
 
     try {
-      const match = await acceptMatch(token, state.match.id);
+      const match = await acceptMatch(token, matchId);
       setState((current) => ({
         ...current,
         acceptStatus: match.status === "ACTIVE" ? "accepted" : "waiting",
@@ -266,7 +237,20 @@ export function useMatchmaking(token) {
         error: err.message,
       }));
     }
-  }, [state.match?.id, token]);
+  }, [matchId, setState, token]);
+
+  return { acceptCurrentMatch, leaveCurrentMatch };
+}
+
+export function useMatchmaking(token) {
+  const [state, setState] = useState(initialState);
+  const refreshStatus = useQueueStatus(token, state, setState);
+  const { cancelSearch, startSearch } = useQueueActions(token, setState);
+  const { acceptCurrentMatch, leaveCurrentMatch } = useCurrentMatchActions(
+    token,
+    state.match?.id,
+    setState,
+  );
 
   return useMemo(
     () => ({
